@@ -16,7 +16,7 @@ const TABS = [
   { id: 'Profile', icon: 'person-outline', iconActive: 'person', label: 'Profile' }
 ];
 
-export default function AasPaasApp() {
+export default function SureTripApp() {
   const [activeTab, setActiveTab] = useState('Home');
 
   const renderScreen = () => {

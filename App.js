@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import AasPaasApp from './Components/AasPaas/AasPaasApp';
+import SureTripApp from './Components/SureTrip/SureTripApp';
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <AasPaasApp />
+      <SureTripApp />
       <StatusBar style="auto" />
     </View>
   );

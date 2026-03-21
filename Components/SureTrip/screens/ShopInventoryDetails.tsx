@@ -27,7 +27,7 @@ export default function ShopInventoryDetails() {
             <TouchableOpacity style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#FFF" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>AasPaas</Text>
+            <Text style={styles.headerTitle}>SureTrip</Text>
             <View style={{ width: 24 }} />
           </View>
         </View>
