@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TextInput, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
 const CATEGORIES = [
-  { id: '1', name: 'Pharmacy', icon: 'medical-bag', color: '#E8F1FF' },
-  { id: '2', name: 'Kirana Store', icon: 'basket', color: '#FFF3E0' },
-  { id: '3', name: 'Hardware', icon: 'tools', color: '#F3E5F5' },
-  { id: '4', name: 'Stationery', icon: 'book-open-page-variant', color: '#E3F2FD' },
+  { id: '1', name: 'Pharmacy', icon: 'activity' },
+  { id: '2', name: 'Groceries', icon: 'shopping-bag' },
+  { id: '3', name: 'Hardware', icon: 'tool' },
+  { id: '4', name: 'Stationery', icon: 'book' },
 ];
 
 const TRENDING = [
@@ -21,37 +21,61 @@ export default function DiscoveryHome() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.locationLabel}>Your Location</Text>
-            <Text style={styles.locationText}>Connaught Place, New Delhi</Text>
+            <Text style={styles.locationLabel}>Current Location</Text>
+            <View style={styles.locationRow}>
+              <Text style={styles.locationText}>Connaught Place</Text>
+              <Ionicons name="chevron-down" size={16} color="#111" style={{ marginLeft: 4 }} />
+            </View>
           </View>
           <Image source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop' }} style={styles.avatar} />
         </View>
+
+        {/* Search */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput style={styles.searchInput} placeholder="Search for Maggi, Tylenol, or a screw..." placeholderTextColor="#888" />
-          <Ionicons name="mic-outline" size={24} color="#666" style={styles.micIcon} />
+          <Feather name="search" size={20} color="#888" style={styles.searchIcon} />
+          <TextInput 
+            style={styles.searchInput} 
+            placeholder="Find groceries, meds, hardware..." 
+            placeholderTextColor="#999" 
+          />
+          <Feather name="mic" size={20} color="#888" style={styles.micIcon} />
         </View>
+
+        {/* Categories */}
         <View style={styles.gridContainer}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity key={cat.id} style={styles.categoryCard}>
-              <View style={[styles.iconWrapper, { backgroundColor: cat.color }]}>
-                <MaterialCommunityIcons name={cat.icon as any} size={36} color="#3014b8" />
+              <View style={styles.iconWrapper}>
+                <Feather name={cat.icon as any} size={24} color="#111" />
               </View>
               <Text style={styles.categoryText}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.sectionTitle}>Trending Nearby</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingList}>
+
+        {/* Trending Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Trending Nearby</Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>See all</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingList} contentContainerStyle={{ paddingRight: 24 }}>
           {TRENDING.map((item) => (
             <View key={item.id} style={styles.trendingCard}>
-              <Image source={{ uri: item.image }} style={styles.trendingImage} />
-              <Text style={styles.trendingName}>{item.name}</Text>
-              <View style={styles.storeInfoRow}>
-                <Text style={styles.trendingStores}>{item.stores}</Text>
-                <Ionicons name="storefront-outline" size={14} color="#888" />
+              <View style={styles.imageBox}>
+                <Image source={{ uri: item.image }} style={styles.trendingImage} />
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={styles.trendingName} numberOfLines={1}>{item.name}</Text>
+                <View style={styles.storeInfoRow}>
+                  <Feather name="map-pin" size={12} color="#888" />
+                  <Text style={styles.trendingStores}>{item.stores}</Text>
+                </View>
               </View>
             </View>
           ))}
@@ -62,25 +86,34 @@ export default function DiscoveryHome() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F9FC', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-  scrollContent: { paddingBottom: 100 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
-  locationLabel: { fontSize: 12, color: '#666', fontWeight: '500' },
-  locationText: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginTop: 2 },
-  avatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: '#3014b8' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E0F7FA', marginHorizontal: 20, marginTop: 15, borderRadius: 12, paddingHorizontal: 15, height: 50, borderWidth: 1, borderColor: '#00BCD4', shadowColor: '#00BCD4', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
-  searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 15, color: '#333' },
-  micIcon: { marginLeft: 10 },
-  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 30 },
-  categoryCard: { width: (width - 60) / 2, alignItems: 'center', marginBottom: 25 },
-  iconWrapper: { width: 90, height: 90, borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, marginBottom: 10, backgroundColor: '#FFF' },
-  categoryText: { fontSize: 14, fontWeight: '600', color: '#222' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A', marginLeft: 20, marginTop: 10, marginBottom: 15 },
-  trendingList: { paddingLeft: 20 },
-  trendingCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginRight: 15, width: 140, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2, marginBottom: 10 },
-  trendingImage: { width: '100%', height: 80, resizeMode: 'contain', marginBottom: 10 },
-  trendingName: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 5 },
-  storeInfoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  trendingStores: { fontSize: 11, color: '#888' },
+  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  scrollContent: { paddingBottom: 110, paddingTop: 10 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingBottom: 10 },
+  locationLabel: { fontSize: 13, color: '#888', fontWeight: '500', marginBottom: 2 },
+  locationRow: { flexDirection: 'row', alignItems: 'center' },
+  locationText: { fontSize: 18, fontWeight: '700', color: '#111' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0F0F0' },
+  
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F4F5F7', marginHorizontal: 24, marginTop: 15, borderRadius: 16, paddingHorizontal: 16, height: 52 },
+  searchIcon: { marginRight: 12 },
+  searchInput: { flex: 1, fontSize: 16, color: '#111', fontWeight: '500' },
+  micIcon: { marginLeft: 12 },
+  
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 30, marginTop: 40 },
+  categoryCard: { width: (width - 60) / 4, alignItems: 'center', marginBottom: 30 },
+  iconWrapper: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#F0F0F0' },
+  categoryText: { fontSize: 13, fontWeight: '500', color: '#444' },
+  
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, marginTop: 15, marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
+  seeAllText: { fontSize: 14, fontWeight: '600', color: '#3014b8' },
+  
+  trendingList: { paddingLeft: 24 },
+  trendingCard: { width: 150, marginRight: 16 },
+  imageBox: { width: '100%', height: 150, borderRadius: 16, backgroundColor: '#F4F5F7', overflow: 'hidden', marginBottom: 12 },
+  trendingImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  cardInfo: { paddingHorizontal: 4 },
+  trendingName: { fontSize: 15, fontWeight: '600', color: '#111', marginBottom: 6 },
+  storeInfoRow: { flexDirection: 'row', alignItems: 'center' },
+  trendingStores: { fontSize: 12, color: '#888', marginLeft: 6 },
 });

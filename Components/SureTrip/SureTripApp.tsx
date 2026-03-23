@@ -7,6 +7,7 @@ import DiscoveryHome from './screens/DiscoveryHome';
 import SearchResultsList from './screens/SearchResultsList';
 import MapInventoryView from './screens/MapInventoryView';
 import ShopInventoryDetails from './screens/ShopInventoryDetails';
+import ProfileDashboard from './screens/ProfileDashboard';
 
 const TABS = [
   { id: 'Home', icon: 'home-outline', iconActive: 'home', label: 'Home' },
@@ -30,11 +31,7 @@ export default function SureTripApp() {
       case 'Offers':
         return <ShopInventoryDetails />;
       case 'Profile':
-        return (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderText}>Profile Screen Placeholder</Text>
-          </View>
-        );
+        return <ProfileDashboard />;
       default:
         return <DiscoveryHome />;
     }
