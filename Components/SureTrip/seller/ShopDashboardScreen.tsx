@@ -1,25 +1,46 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 
 export default function ShopDashboardScreen() {
   const { activeStock, removeStockItem, user } = useApp();
 
+  // Mock revenue calculation
+  const totalValue = activeStock.reduce((acc, item) => {
+    const qty = parseInt(item.quantity) || 1;
+    const price = parseInt(item.price) || 0;
+    return acc + (qty * price);
+  }, 0);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Active Stock</Text>
-        <Text style={styles.subtitle}>Items you confirmed available today</Text>
+        <Text style={styles.title}>Shop Dashboard</Text>
+        
+        {/* Revenue/Stats Widget */}
+        <View style={styles.statsWidget}>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Active Listings</Text>
+            <Text style={styles.statValue}>{activeStock.length}</Text>
+          </View>
+          <View style={styles.verticalDivider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>Potential Revenue</Text>
+            <Text style={[styles.statValue, { color: '#059669' }]}>₹{totalValue}</Text>
+          </View>
+        </View>
       </View>
+
+      <Text style={styles.sectionTitle}>Currently Live on Map</Text>
 
       {activeStock.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIcon}>
-            <Feather name="box" size={36} color="#CCC" />
+            <Feather name="box" size={32} color="#CCC" />
           </View>
-          <Text style={styles.emptyTitle}>No active stock yet</Text>
-          <Text style={styles.emptySubTitle}>When you confirm YES to a buyer request, it'll appear here for tracking.</Text>
+          <Text style={styles.emptyTitle}>Your digital shelf is empty</Text>
+          <Text style={styles.emptySubTitle}>When you confirm YES to requests, they will stay live here for buyers to see for 4 hours.</Text>
         </View>
       ) : (
         <FlatList
@@ -29,64 +50,61 @@ export default function ShopDashboardScreen() {
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <View style={styles.stockCard}>
-              <View style={styles.cardLeft}>
-                <View style={styles.iconWrapper}>
-                  <Feather name="check-circle" size={20} color="#059669" />
-                </View>
-                <View>
-                  <Text style={styles.productName}>{item.product}</Text>
-                  <Text style={styles.stockMeta}>₹{item.price} • {item.quantity} pcs • {item.confirmedAt}</Text>
-                </View>
+              {/* TTL Auto-Expiry Visualizer */}
+              <View style={styles.ttlRow}>
+                <Feather name="clock" size={12} color="#D97706" />
+                <Text style={styles.ttlText}>Auto-expires in 3h 45m</Text>
               </View>
-              <TouchableOpacity onPress={() => removeStockItem(item.id)}>
-                <View style={styles.removeBtn}>
-                  <Feather name="x" size={16} color="#DC2626" />
+
+              <View style={styles.cardMain}>
+                <View style={styles.iconWrapper}>
+                  <Feather name="check" size={18} color="#059669" />
                 </View>
-              </TouchableOpacity>
+                <View style={styles.cardInfo}>
+                  <Text style={styles.productName}>{item.product}</Text>
+                  <Text style={styles.stockMeta}>₹{item.price} per item • {item.quantity} units</Text>
+                </View>
+                <TouchableOpacity style={styles.removeBtn} onPress={() => removeStockItem(item.id)}>
+                  <Text style={styles.removeText}>Mark Sold Out</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         />
       )}
-
-      <View style={styles.shopInfoCard}>
-        <View style={styles.shopRow}>
-          <Feather name="home" size={18} color="#059669" />
-          <View style={styles.shopText}>
-            <Text style={styles.shopName}>{user?.shopName || 'My Shop'}</Text>
-            <Text style={styles.shopAddress}>{user?.shopAddress || 'Tap to set address'}</Text>
-          </View>
-          <View style={styles.openBadge}>
-            <View style={styles.greenDot} />
-            <Text style={styles.openText}>Open</Text>
-          </View>
-        </View>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-  header: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 10 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111' },
-  subtitle: { fontSize: 14, color: '#888', marginTop: 4 },
-  listContent: { paddingHorizontal: 24, paddingTop: 10, paddingBottom: 160 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyIcon: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#F5F6FA', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#555', marginBottom: 8 },
+  container: { flex: 1, backgroundColor: '#F8F9FB', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 24, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#EEF0F5' },
+  title: { fontSize: 26, fontWeight: '800', color: '#111', marginBottom: 20, letterSpacing: -0.5 },
+  
+  statsWidget: { flexDirection: 'row', backgroundColor: '#FAFCFF', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#EEF0F5', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
+  statBox: { flex: 1 },
+  statLabel: { fontSize: 13, color: '#888', fontWeight: '500', marginBottom: 4 },
+  statValue: { fontSize: 24, fontWeight: '800', color: '#111' },
+  verticalDivider: { width: 1, backgroundColor: '#EEF0F5', marginHorizontal: 20 },
+  
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginHorizontal: 24, marginTop: 24, marginBottom: 12 },
+  
+  listContent: { paddingHorizontal: 24, paddingBottom: 110 },
+  emptyContainer: { alignItems: 'center', marginTop: 40, paddingHorizontal: 40 },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#EEF0F5', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 8 },
   emptySubTitle: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22 },
-  stockCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: '#C8F0DE', borderRadius: 14, padding: 14, marginBottom: 10, backgroundColor: '#FAFFFD' },
-  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  iconWrapper: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#EDFBF4', justifyContent: 'center', alignItems: 'center' },
-  productName: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 3 },
-  stockMeta: { fontSize: 13, color: '#888' },
-  removeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
-  shopInfoCard: { position: 'absolute', bottom: 90, left: 24, right: 24, borderWidth: 1.5, borderColor: '#C8F0DE', borderRadius: 16, padding: 16, backgroundColor: '#FAFFFD' },
-  shopRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  shopText: { flex: 1 },
-  shopName: { fontSize: 16, fontWeight: '700', color: '#111' },
-  shopAddress: { fontSize: 13, color: '#888', marginTop: 2 },
-  openBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EDFBF4', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  greenDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#059669', marginRight: 6 },
-  openText: { fontSize: 13, fontWeight: '600', color: '#059669' },
+  
+  stockCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#EEF0F5', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
+  ttlRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEF3C7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 12 },
+  ttlText: { fontSize: 11, fontWeight: '700', color: '#D97706', textTransform: 'uppercase', letterSpacing: 0.5 },
+  
+  cardMain: { flexDirection: 'row', alignItems: 'center' },
+  iconWrapper: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#EDFBF4', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  cardInfo: { flex: 1 },
+  productName: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 4 },
+  stockMeta: { fontSize: 13, color: '#888', fontWeight: '500' },
+  
+  removeBtn: { backgroundColor: '#FEF2F2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  removeText: { color: '#DC2626', fontSize: 12, fontWeight: '700' },
 });

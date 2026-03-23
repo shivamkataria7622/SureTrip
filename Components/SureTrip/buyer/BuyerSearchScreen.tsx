@@ -1,168 +1,334 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  ActivityIndicator, Platform, StatusBar, ScrollView, Modal,
+  Image, Animated, Dimensions
+} from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
+const { width } = Dimensions.get('window');
+
+const CATEGORIES = [
+  { id: 'all', label: 'All', icon: 'grid' },
+  { id: 'pharmacy', label: 'Pharmacy', icon: 'activity' },
+  { id: 'grocery', label: 'Grocery', icon: 'shopping-bag' },
+  { id: 'hardware', label: 'Hardware', icon: 'tool' },
+  { id: 'electrical', label: 'Electrical', icon: 'zap' },
+  { id: 'plumbing', label: 'Plumbing', icon: 'droplet' },
+];
+
+const QUICK_SUGGESTIONS = [
+  'Crocin Advance', 'PVC Pipe 1 inch', 'Amul Butter',
+  'Electrical Wire 2.5mm', 'Parle-G', 'Dettol Handwash',
+];
+
 const MOCK_RESULTS = [
-  { id: '1', shopName: 'Sharma Hardware Store', product: 'PVC Pipe 1 inch', price: '₹45/pcs', quantity: '12 in stock', distance: '280m', verified: '2 min ago', rating: 4.5 },
-  { id: '2', shopName: 'Gupta Sanitary Works', product: 'PVC Pipe 1 inch', price: '₹42/pcs', quantity: '20 in stock', distance: '620m', verified: '5 min ago', rating: 4.2 },
-  { id: '3', shopName: 'Delhi Hardware Depot', product: 'PVC Pipe 1 inch', price: '₹50/pcs', quantity: '5 in stock', distance: '1.1km', verified: '8 min ago', rating: 4.8 },
+  { id: '1', shopName: 'Sharma Hardware Store', price: '₹45/pcs', quantity: '12 in stock', distance: '280m', verified: '2 min ago', category: 'Hardware', rating: '4.8', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚡ Fast Responder', badgeColor: '#FEF3C7', badgeTextColor: '#D97706' },
+  { id: '2', shopName: 'Gupta Sanitary Works', price: '₹42/pcs', quantity: '20 in stock', distance: '620m', verified: '5 min ago', category: 'Hardware', rating: '4.5', image: 'https://images.unsplash.com/photo-1542013936693-884638332954?w=150&h=150&fit=crop', badge: '🔥 Most Popular', badgeColor: '#FEE2E2', badgeTextColor: '#DC2626' },
+  { id: '3', shopName: 'Delhi Depot', price: '₹50/pcs', quantity: 'Only 2 left!', distance: '1.1km', verified: '8 min ago', category: 'Hardware', rating: '4.2', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚠️ Low Stock', badgeColor: '#FEF2F2', badgeTextColor: '#991B1B' },
 ];
 
 export default function BuyerSearchScreen() {
   const [query, setQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<typeof MOCK_RESULTS>([]);
+  const [results, setResults] = useState<any[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>(['Amul Butter', 'Crocin Advance']);
   const [searched, setSearched] = useState(false);
+  
+  // UI States
+  const [filterVisible, setFilterVisible] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  const handleSearch = () => {
-    if (!query.trim()) return;
+  // Animated Header Values
+  const titleHeight = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [40, 0],
+    extrapolate: 'clamp',
+  });
+  
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 30],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const handleSearch = (searchQuery?: string) => {
+    const q = searchQuery ?? query;
+    if (!q.trim()) return;
+    setQuery(q);
     setLoading(true);
     setResults([]);
     setSearched(true);
+    if (!recentSearches.includes(q)) {
+      setRecentSearches(prev => [q, ...prev].slice(0, 5));
+    }
     setTimeout(() => {
       setLoading(false);
       setResults(MOCK_RESULTS);
-    }, 2500);
+    }, 2000);
+  };
+
+  const clearSearch = () => {
+    setQuery('');
+    setResults([]);
+    setSearched(false);
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Sticky Top Nav */}
+      <View style={styles.topNav}>
         <View style={styles.locationRow}>
-          <Feather name="map-pin" size={14} color="#3014b8" />
+          <Feather name="map-pin" size={13} color="#3014b8" />
           <Text style={styles.locationText}>Connaught Place, New Delhi</Text>
-          <Feather name="chevron-down" size={14} color="#888" />
+          <Feather name="chevron-down" size={13} color="#888" />
         </View>
-        <Text style={styles.title}>Find Anything,{'\n'}Nearby.</Text>
-      </View>
+        
+        <Animated.View style={{ height: titleHeight, opacity: titleOpacity, overflow: 'hidden' }}>
+          <Text style={styles.title}>Find Anything Nearby</Text>
+        </Animated.View>
 
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Feather name="search" size={18} color="#888" style={{ marginRight: 10 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="e.g. PVC Pipe 1 inch, Crocin..."
-            placeholderTextColor="#999"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSearched(false); }}>
-              <Feather name="x" size={16} color="#888" />
+        {/* Search Bar + Filter Icon */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Feather name="search" size={18} color="#888" style={{ marginRight: 10 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="e.g. PVC Pipe, Crocin..."
+              placeholderTextColor="#999"
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => handleSearch()}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={clearSearch}>
+                <Feather name="x-circle" size={18} color="#CCC" />
+              </TouchableOpacity>
+            )}
+            <View style={styles.divider} />
+            <TouchableOpacity hitSlop={{top:10, bottom:10, left:10, right:10}}>
+              <Feather name="mic" size={18} color="#3014b8" />
             </TouchableOpacity>
-          )}
+          </View>
+          <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterVisible(true)}>
+            <Feather name="sliders" size={18} color="#111" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-          <Feather name="arrow-right" size={20} color="#FFF" />
-        </TouchableOpacity>
+
+        {/* Category Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryScroll}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 10, gap: 8 }}
+        >
+          {CATEGORIES.map(cat => {
+            const isActive = activeCategory === cat.id;
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={[styles.chip, isActive && styles.chipActive]}
+                onPress={() => setActiveCategory(cat.id)}
+              >
+                <Feather name={cat.icon as any} size={13} color={isActive ? '#FFF' : '#555'} />
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{cat.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* Loading State */}
-      {loading && (
+      {/* Main Content Area */}
+      {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3014b8" />
           <Text style={styles.loadingText}>Notifying nearby shops...</Text>
           <Text style={styles.loadingSubText}>Asking stores within 2km if they have it in stock</Text>
         </View>
-      )}
-
-      {/* Empty / Initial State */}
-      {!loading && !searched && (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Feather name="search" size={36} color="#C5C5C5" />
-          </View>
-          <Text style={styles.emptyTitle}>Search for any product</Text>
-          <Text style={styles.emptySubTitle}>We'll ask nearby shops in real-time if they have it.</Text>
-        </View>
-      )}
-
-      {/* Results */}
-      {!loading && results.length > 0 && (
-        <View style={{ flex: 1 }}>
-          <View style={styles.resultsHeader}>
-            <Text style={styles.resultsTitle}>{results.length} shops found</Text>
-            <Text style={styles.resultsSubTitle}>for "{query}"</Text>
-          </View>
-          <FlatList
-            data={results}
-            keyExtractor={i => i.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View style={styles.resultCard}>
-                <View style={styles.cardTop}>
-                  <View style={styles.shopIconWrapper}>
-                    <Feather name="home" size={20} color="#3014b8" />
+      ) : !searched ? (
+        <Animated.ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.idleContent}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          scrollEventThrottle={16}
+        >
+          {recentSearches.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Recent Searches</Text>
+              {recentSearches.map((item, i) => (
+                <TouchableOpacity key={i} style={styles.recentRow} onPress={() => handleSearch(item)}>
+                  <View style={styles.recentIcon}>
+                    <Feather name="clock" size={15} color="#888" />
                   </View>
-                  <View style={styles.cardTexts}>
-                    <Text style={styles.shopName}>{item.shopName}</Text>
-                    <View style={styles.metaRow}>
-                      <Feather name="map-pin" size={12} color="#888" />
-                      <Text style={styles.metaText}>{item.distance}</Text>
-                      <View style={styles.dot} />
-                      <Feather name="clock" size={12} color="#888" />
-                      <Text style={styles.metaText}>Verified {item.verified}</Text>
-                    </View>
+                  <Text style={styles.recentText}>{item}</Text>
+                  <Feather name="arrow-up-left" size={15} color="#CCC" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Near You</Text>
+            <View style={styles.suggestionsWrap}>
+              {QUICK_SUGGESTIONS.map((s, i) => (
+                <TouchableOpacity key={i} style={styles.suggestionChip} onPress={() => handleSearch(s)}>
+                  <Text style={styles.suggestionText}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Animated.ScrollView>
+      ) : (
+        <Animated.FlatList
+          data={results}
+          keyExtractor={i => i.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+          scrollEventThrottle={16}
+          ListHeaderComponent={
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsTitle}>{results.length} shops found</Text>
+              <Text style={styles.resultsSubTitle}>for "{query}"</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.resultCard}>
+              {/* Trust Badge overlay */}
+              <View style={[styles.badgePill, { backgroundColor: item.badgeColor }]}>
+                <Text style={[styles.badgeText, { color: item.badgeTextColor }]}>{item.badge}</Text>
+              </View>
+
+              <View style={styles.cardTop}>
+                <Image source={{ uri: item.image }} style={styles.productImage} />
+                <View style={styles.cardTexts}>
+                  <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                  
+                  <View style={styles.metaRow}>
+                    <Ionicons name="star" size={12} color="#F59E0B" />
+                    <Text style={[styles.metaText, {color: '#F59E0B', fontWeight: '700'}]}>{item.rating}</Text>
+                    <View style={styles.dot} />
+                    <Feather name="map-pin" size={11} color="#888" />
+                    <Text style={styles.metaText}>{item.distance}</Text>
                   </View>
+
                   <Text style={styles.price}>{item.price}</Text>
                 </View>
-                <View style={styles.cardBottom}>
-                  <View style={styles.stockBadge}>
-                    <Feather name="check-circle" size={13} color="#059669" />
-                    <Text style={styles.stockText}>{item.quantity}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.directionBtn}>
-                    <Feather name="navigation" size={14} color="#3014b8" />
-                    <Text style={styles.directionText}>Directions</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            )}
-          />
-        </View>
+              
+              <View style={styles.cardBottom}>
+                <View style={[styles.stockBadge, item.quantity.includes('Only') && { backgroundColor: '#FEF2F2' }]}>
+                  <Feather name="check-circle" size={13} color={item.quantity.includes('Only') ? '#DC2626' : '#059669'} />
+                  <Text style={[styles.stockText, item.quantity.includes('Only') && { color: '#DC2626' }]}>{item.quantity}</Text>
+                </View>
+                <Text style={styles.verifiedText}>Verified {item.verified}</Text>
+              </View>
+            </View>
+          )}
+        />
       )}
+
+      {/* Floating Map Toggle Button */}
+      {searched && !loading && (
+        <TouchableOpacity style={styles.fabMap} activeOpacity={0.9}>
+          <Feather name="map" size={16} color="#FFF" />
+          <Text style={styles.fabText}>Map View</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Filter Bottom Sheet */}
+      <Modal visible={filterVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Sort & Filter</Text>
+            
+            <Text style={styles.filterGroupTitle}>Sort By</Text>
+            <View style={styles.filterOptions}>
+              <TouchableOpacity style={[styles.filterChip, styles.filterChipActive]}><Text style={[styles.filterChipText, styles.filterChipTextActive]}>Nearest First</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.filterChip}><Text style={styles.filterChipText}>Lowest Price</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.filterChip}><Text style={styles.filterChipText}>Top Rated</Text></TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterVisible(false)}>
+              <Text style={styles.applyBtnText}>Show {results.length || 0} Results</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
-  header: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 10 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 5 },
+  container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+  topNav: { backgroundColor: '#FFFFFF', paddingHorizontal: 0, paddingTop: 18, zIndex: 10 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 5, paddingHorizontal: 24 },
   locationText: { fontSize: 13, color: '#555', fontWeight: '500' },
-  title: { fontSize: 28, fontWeight: '800', color: '#111', letterSpacing: -0.3, lineHeight: 36 },
-  searchRow: { flexDirection: 'row', paddingHorizontal: 24, marginTop: 16, gap: 12, alignItems: 'center' },
-  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F6FA', borderRadius: 14, paddingHorizontal: 16, height: 52, borderWidth: 1, borderColor: '#EBEBEB' },
+  title: { fontSize: 26, fontWeight: '800', color: '#111', letterSpacing: -0.3, paddingHorizontal: 24 },
+  searchRow: { flexDirection: 'row', paddingHorizontal: 24, marginTop: 10, gap: 10, alignItems: 'center' },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F6FA', borderRadius: 14, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#EBEBEB' },
   searchInput: { flex: 1, fontSize: 15, color: '#111' },
-  searchBtn: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#3014b8', justifyContent: 'center', alignItems: 'center' },
+  divider: { width: 1, height: 20, backgroundColor: '#CCC', marginHorizontal: 12 },
+  filterBtn: { width: 50, height: 50, borderRadius: 14, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#EBEBEB' },
+  
+  categoryScroll: { backgroundColor: '#FFFFFF', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#EBEBEB' },
+  chipActive: { backgroundColor: '#111', borderColor: '#111' },
+  chipText: { fontSize: 13, fontWeight: '600', color: '#555' },
+  chipTextActive: { color: '#FFF' },
+  
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   loadingText: { fontSize: 18, fontWeight: '700', color: '#111', marginTop: 20, marginBottom: 8 },
   loadingSubText: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
-  emptyIcon: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#F5F6FA', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 8 },
-  emptySubTitle: { fontSize: 15, color: '#888', textAlign: 'center', lineHeight: 22 },
-  resultsHeader: { paddingHorizontal: 24, paddingVertical: 16 },
+  
+  idleContent: { padding: 24, paddingBottom: 110, gap: 8 },
+  section: { marginBottom: 28 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 14 },
+  recentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
+  recentIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  recentText: { flex: 1, fontSize: 15, color: '#333', fontWeight: '500' },
+  suggestionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  suggestionChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EBEBEB' },
+  suggestionText: { fontSize: 14, color: '#444', fontWeight: '500' },
+  
+  resultsHeader: { paddingVertical: 14 },
   resultsTitle: { fontSize: 18, fontWeight: '700', color: '#111' },
-  resultsSubTitle: { fontSize: 14, color: '#888', marginTop: 2 },
-  listContent: { paddingHorizontal: 24, paddingBottom: 110 },
-  resultCard: { borderWidth: 1.5, borderColor: '#EBEBEB', borderRadius: 16, padding: 16, marginBottom: 12, backgroundColor: '#FAFCFF' },
-  cardTop: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
-  shopIconWrapper: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#EEF0FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  resultsSubTitle: { fontSize: 13, color: '#888', marginTop: 2 },
+  listContent: { paddingHorizontal: 24, paddingBottom: 120 },
+  
+  resultCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F5', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 },
+  badgePill: { position: 'absolute', top: -10, left: 16, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, zIndex: 10 },
+  badgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 4 },
+  productImage: { width: 64, height: 64, borderRadius: 12, backgroundColor: '#F5F6FA', marginRight: 14 },
   cardTexts: { flex: 1 },
-  shopName: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 5 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  shopName: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 6 },
   metaText: { fontSize: 12, color: '#888' },
   dot: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#CCC' },
-  price: { fontSize: 17, fontWeight: '800', color: '#111' },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 14 },
-  stockBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#EDFBF4', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
-  stockText: { fontSize: 13, fontWeight: '600', color: '#059669' },
-  directionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  directionText: { fontSize: 14, fontWeight: '600', color: '#3014b8' },
+  price: { fontSize: 18, fontWeight: '800', color: '#111' },
+  
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F5F6FA', paddingTop: 14 },
+  stockBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#EDFBF4', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  stockText: { fontSize: 13, fontWeight: '700', color: '#059669' },
+  verifiedText: { fontSize: 12, color: '#AAA', fontWeight: '500' },
+  
+  fabMap: { position: 'absolute', bottom: 100, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#111', paddingHorizontal: 20, paddingVertical: 14, borderRadius: 30, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  fabText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  bottomSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  sheetHandle: { width: 40, height: 4, backgroundColor: '#EBEBEB', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  sheetTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 24 },
+  filterGroupTitle: { fontSize: 16, fontWeight: '700', color: '#555', marginBottom: 12 },
+  filterOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 30 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: '#F5F6FA', borderWidth: 1, borderColor: '#EBEBEB' },
+  filterChipActive: { backgroundColor: '#111', borderColor: '#111' },
+  filterChipText: { fontSize: 14, color: '#444', fontWeight: '600' },
+  filterChipTextActive: { color: '#FFF' },
+  applyBtn: { backgroundColor: '#3014b8', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  applyBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });
