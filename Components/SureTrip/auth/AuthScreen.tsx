@@ -22,7 +22,7 @@ export default function AuthScreen() {
         {/* Logo Area */}
         <View style={styles.logoArea}>
           <View style={styles.logoCircle}>
-            <Feather name="map-pin" size={36} color="#3014b8" />
+            <Feather name="map-pin" size={36} color="#11706b" />
           </View>
           <Text style={styles.appName}>SureTrip</Text>
           <Text style={styles.tagline}>Find what you need, nearby.</Text>
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   inner: { paddingHorizontal: 28, paddingTop: 80, paddingBottom: 40 },
   logoArea: { alignItems: 'center', marginBottom: 40 },
-  logoCircle: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#EEF0FF', justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
+  logoCircle: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#E0F2F1', justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
   appName: { fontSize: 30, fontWeight: '800', color: '#111', letterSpacing: -0.5 },
   tagline: { fontSize: 15, color: '#888', marginTop: 4 },
   form: {},
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 12 },
   input: { flex: 1, fontSize: 16, color: '#111' },
   eyeIcon: { padding: 4 },
-  primaryButton: { backgroundColor: '#3014b8', borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginTop: 6 },
+  primaryButton: { backgroundColor: '#11706b', borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', marginTop: 6 },
   primaryButtonText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#EBEBEB' },

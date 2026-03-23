@@ -28,7 +28,7 @@ const MOCK_RESULTS = [
   { id: '3', shopName: 'Delhi Depot', price: '₹50/pcs', quantity: 'Only 2 left!', distance: '1.1km', verified: '8 min ago', category: 'Hardware', rating: '4.2', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚠️ Low Stock', badgeColor: '#FEF2F2', badgeTextColor: '#991B1B' },
 ];
 
-export default function BuyerSearchScreen() {
+export default function BuyerSearchScreen({ onClose }: { onClose?: () => void }) {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -97,8 +97,14 @@ export default function BuyerSearchScreen() {
     <View style={styles.container}>
       {/* Sticky Top Nav */}
       <View style={styles.topNav}>
+        {/* Back Button */}
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color="#111" />
+          </TouchableOpacity>
+        )}
         <View style={styles.locationRow}>
-          <Feather name="map-pin" size={13} color="#3014b8" />
+          <Feather name="map-pin" size={13} color="#11706b" />
           <Text style={styles.locationText}>Connaught Place, New Delhi</Text>
           <Feather name="chevron-down" size={13} color="#888" />
         </View>
@@ -127,7 +133,7 @@ export default function BuyerSearchScreen() {
             )}
             <View style={styles.divider} />
             <TouchableOpacity hitSlop={{top:10, bottom:10, left:10, right:10}}>
-              <Feather name="mic" size={18} color="#3014b8" />
+              <Feather name="mic" size={18} color="#11706b" />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterVisible(true)}>
@@ -161,7 +167,7 @@ export default function BuyerSearchScreen() {
       {/* Main Content Area */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3014b8" />
+          <ActivityIndicator size="large" color="#11706b" />
           <Text style={styles.loadingText}>Notifying nearby shops...</Text>
           <Text style={styles.loadingSubText}>Asking stores within 2km if they have it in stock</Text>
         </View>
@@ -349,6 +355,7 @@ export default function BuyerSearchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   topNav: { backgroundColor: '#FFFFFF', paddingHorizontal: 0, paddingTop: 18, zIndex: 10 },
+  backBtn: { marginLeft: 24, marginBottom: 8, padding: 4, alignSelf: 'flex-start' },
   locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 5, paddingHorizontal: 24 },
   locationText: { fontSize: 13, color: '#555', fontWeight: '500' },
   title: { fontSize: 26, fontWeight: '800', color: '#111', letterSpacing: -0.3, paddingHorizontal: 24 },
@@ -413,11 +420,11 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#111', borderColor: '#111' },
   filterChipText: { fontSize: 14, color: '#444', fontWeight: '600' },
   filterChipTextActive: { color: '#FFF' },
-  applyBtn: { backgroundColor: '#3014b8', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  applyBtn: { backgroundColor: '#11706b', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   applyBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 
-  reserveBtn: { backgroundColor: '#EEF0FF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  reserveBtnText: { color: '#3014b8', fontSize: 13, fontWeight: '700' },
+  reserveBtn: { backgroundColor: '#E0F2F1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  reserveBtnText: { color: '#11706b', fontSize: 13, fontWeight: '700' },
   
   cartCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F6FA', padding: 12, borderRadius: 16, marginBottom: 20 },
   cartImage: { width: 50, height: 50, borderRadius: 10, marginRight: 12 },

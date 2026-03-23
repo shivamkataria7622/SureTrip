@@ -16,13 +16,13 @@ export default function RoleSelectScreen() {
 
       <View style={styles.cardsContainer}>
         <TouchableOpacity style={styles.card} onPress={() => setRole('buyer')} activeOpacity={0.85}>
-          <View style={[styles.cardIcon, { backgroundColor: '#EEF0FF' }]}>
-            <Feather name="shopping-bag" size={32} color="#3014b8" />
+          <View style={[styles.cardIcon, { backgroundColor: '#E0F2F1' }]}>
+            <Feather name="shopping-bag" size={32} color="#11706b" />
           </View>
           <Text style={styles.cardTitle}>I'm a Buyer</Text>
           <Text style={styles.cardDesc}>Search for products and find nearby shops that have them in stock right now.</Text>
           <View style={styles.cardArrow}>
-            <Feather name="arrow-right" size={18} color="#3014b8" />
+            <Feather name="arrow-right" size={18} color="#11706b" />
           </View>
         </TouchableOpacity>
 
@@ -53,5 +53,5 @@ const styles = StyleSheet.create({
   cardIcon: { width: 64, height: 64, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   cardTitle: { fontSize: 20, fontWeight: '700', color: '#111', marginBottom: 8 },
   cardDesc: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 20 },
-  cardArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EEF0FF', justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start' },
+  cardArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E0F2F1', justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start' },
 });

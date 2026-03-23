@@ -36,8 +36,8 @@ export default function SellerProfileScreen() {
 
       <View style={styles.menuSection}>
         <TouchableOpacity style={styles.menuItem} onPress={switchRole}>
-          <View style={[styles.menuIcon, { backgroundColor: '#EEF0FF' }]}>
-            <Feather name="refresh-cw" size={18} color="#3014b8" />
+          <View style={[styles.menuIcon, { backgroundColor: '#E0F2F1' }]}>
+            <Feather name="refresh-cw" size={18} color="#11706b" />
           </View>
           <Text style={styles.menuText}>Switch to Buyer Mode</Text>
           <Feather name="chevron-right" size={18} color="#CCC" />

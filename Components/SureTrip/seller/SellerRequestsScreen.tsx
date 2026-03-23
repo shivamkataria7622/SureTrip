@@ -61,7 +61,7 @@ export default function SellerRequestsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.pulseCircle}>
-                <Feather name="radio" size={32} color="#3014b8" />
+                <Feather name="radio" size={32} color="#11706b" />
               </View>
               <Text style={styles.emptyText}>Listening for buyers...</Text>
               <Text style={styles.emptySubText}>Keep your app open. When someone nearby searches for your category, it will appear here instantly.</Text>
@@ -80,7 +80,7 @@ export default function SellerRequestsScreen() {
 
               <View style={styles.cardTop}>
                 <View style={[styles.productIconWrapper, item.responded && { backgroundColor: '#F5F5F5' }]}>
-                  <Feather name="shopping-cart" size={20} color={item.responded ? '#AAA' : '#3014b8'} />
+                  <Feather name="shopping-cart" size={20} color={item.responded ? '#AAA' : '#11706b'} />
                 </View>
                 <View style={styles.cardInfo}>
                   <Text style={[styles.productName, item.responded && { color: '#888' }]}>{item.product}</Text>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   
   listContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 110 },
   emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
-  pulseCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#EEF0FF', justifyContent: 'center', alignItems: 'center', marginBottom: 20, borderWidth: 4, borderColor: 'rgba(48, 20, 184, 0.1)' },
+  pulseCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E0F2F1', justifyContent: 'center', alignItems: 'center', marginBottom: 20, borderWidth: 4, borderColor: 'rgba(17, 112, 107, 0.1)' },
   emptyText: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 8 },
   emptySubText: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 22 },
   
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   urgencyText: { color: '#FFF', fontSize: 11, fontWeight: '700' },
   
   cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 4 },
-  productIconWrapper: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#EEF0FF', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  productIconWrapper: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#E0F2F1', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   cardInfo: { flex: 1 },
   productName: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 4 },
   buyerMeta: { fontSize: 13, color: '#888', fontWeight: '500' },
@@ -210,11 +210,11 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 10 },
   quickChipsRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   quickChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: '#F5F6FA', borderWidth: 1, borderColor: '#EBEBEB' },
-  quickChipActive: { backgroundColor: '#3014b8', borderColor: '#3014b8' },
+  quickChipActive: { backgroundColor: '#11706b', borderColor: '#11706b' },
   quickChipText: { fontSize: 15, fontWeight: '600', color: '#444' },
   inputField: { backgroundColor: '#F5F6FA', borderRadius: 14, paddingHorizontal: 16, height: 50, fontSize: 15, color: '#111', borderWidth: 1, borderColor: '#EBEBEB' },
   
-  priceInputWrapper: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 2, borderBottomColor: '#3014b8', paddingBottom: 5 },
+  priceInputWrapper: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 2, borderBottomColor: '#11706b', paddingBottom: 5 },
   rupeeSymbol: { fontSize: 32, fontWeight: '700', color: '#111', marginRight: 10 },
   priceInputField: { flex: 1, fontSize: 36, fontWeight: '800', color: '#111' },
   
