@@ -38,6 +38,8 @@ export default function BuyerSearchScreen() {
   
   // UI States
   const [filterVisible, setFilterVisible] = useState(false);
+  const [cartItem, setCartItem] = useState<any>(null);
+  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'>('cart');
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Animated Header Values
@@ -73,6 +75,22 @@ export default function BuyerSearchScreen() {
     setQuery('');
     setResults([]);
     setSearched(false);
+  };
+
+  const openCheckout = (item: any) => {
+    setCartItem(item);
+    setCheckoutStep('cart');
+  };
+
+  const processPayment = () => {
+    setCheckoutStep('processing');
+    setTimeout(() => {
+      setCheckoutStep('success');
+    }, 2500);
+  };
+
+  const closeCheckout = () => {
+    setCartItem(null);
   };
 
   return (
@@ -222,7 +240,9 @@ export default function BuyerSearchScreen() {
                   <Feather name="check-circle" size={13} color={item.quantity.includes('Only') ? '#DC2626' : '#059669'} />
                   <Text style={[styles.stockText, item.quantity.includes('Only') && { color: '#DC2626' }]}>{item.quantity}</Text>
                 </View>
-                <Text style={styles.verifiedText}>Verified {item.verified}</Text>
+                <TouchableOpacity style={styles.reserveBtn} onPress={() => openCheckout(item)}>
+                  <Text style={styles.reserveBtnText}>Reserve</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -254,6 +274,70 @@ export default function BuyerSearchScreen() {
             <TouchableOpacity style={styles.applyBtn} onPress={() => setFilterVisible(false)}>
               <Text style={styles.applyBtnText}>Show {results.length || 0} Results</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Checkout Modal */}
+      <Modal visible={!!cartItem} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.bottomSheet}>
+            {checkoutStep === 'cart' && (
+              <>
+                <View style={styles.sheetHandle} />
+                <Text style={styles.sheetTitle}>Reserve for Pickup</Text>
+                
+                <View style={styles.cartCard}>
+                  <Image source={{ uri: cartItem?.image }} style={styles.cartImage} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.cartItemName}>{cartItem?.shopName}</Text>
+                    <Text style={styles.cartItemSub}>{cartItem?.category || 'Hardware Item'} • {cartItem?.price}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.billRow}>
+                  <Text style={styles.billText}>Item Total</Text>
+                  <Text style={styles.billText}>{cartItem?.price}</Text>
+                </View>
+                <View style={styles.billRow}>
+                  <Text style={styles.billText}>Platform Fee</Text>
+                  <Text style={styles.billText}>₹2</Text>
+                </View>
+                <View style={[styles.billRow, { borderTopWidth: 1, borderTopColor: '#EEE', paddingTop: 12, marginTop: 12 }]}>
+                  <Text style={styles.billTotal}>To Pay</Text>
+                  <Text style={styles.billTotal}>{cartItem?.price}</Text>
+                </View>
+
+                <TouchableOpacity style={styles.payBtn} onPress={processPayment} activeOpacity={0.8}>
+                   <Text style={styles.payBtnText}>Pay via UPI & Reserve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelCheckoutBtn} onPress={closeCheckout}>
+                  <Text style={styles.cancelCheckoutText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {checkoutStep === 'processing' && (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="large" color="#059669" />
+                <Text style={styles.processingText}>Securing from {cartItem?.shopName}...</Text>
+                <Text style={styles.processingSub}>Confirming with shopkeeper</Text>
+              </View>
+            )}
+
+            {checkoutStep === 'success' && (
+              <View style={styles.successContainer}>
+                <View style={styles.successIconBox}>
+                  <Feather name="check" size={40} color="#FFF" />
+                </View>
+                <Text style={styles.successTitle}>Reservation Confirmed!</Text>
+                <Text style={styles.successSub}>Show Order #X7B9 to the shopkeeper at {cartItem?.shopName} to pickup your item.</Text>
+                
+                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
+                  <Text style={styles.payBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -331,4 +415,28 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: '#FFF' },
   applyBtn: { backgroundColor: '#3014b8', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   applyBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+
+  reserveBtn: { backgroundColor: '#EEF0FF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  reserveBtnText: { color: '#3014b8', fontSize: 13, fontWeight: '700' },
+  
+  cartCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F6FA', padding: 12, borderRadius: 16, marginBottom: 20 },
+  cartImage: { width: 50, height: 50, borderRadius: 10, marginRight: 12 },
+  cartItemName: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 4 },
+  cartItemSub: { fontSize: 13, color: '#555' },
+  billRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  billText: { fontSize: 14, color: '#555' },
+  billTotal: { fontSize: 16, fontWeight: '800', color: '#111' },
+  payBtn: { backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 24 },
+  payBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  cancelCheckoutBtn: { alignItems: 'center', paddingVertical: 16 },
+  cancelCheckoutText: { color: '#888', fontSize: 15, fontWeight: '600' },
+  
+  processingContainer: { alignItems: 'center', paddingVertical: 40 },
+  processingText: { fontSize: 18, fontWeight: '700', color: '#111', marginTop: 20, marginBottom: 8 },
+  processingSub: { fontSize: 14, color: '#888' },
+  
+  successContainer: { alignItems: 'center', paddingVertical: 20 },
+  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#059669', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  successTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 12 },
+  successSub: { fontSize: 15, color: '#555', textAlign: 'center', lineHeight: 22, marginBottom: 30, paddingHorizontal: 20 },
 });

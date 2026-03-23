@@ -5,22 +5,25 @@ import { BlurView } from 'expo-blur';
 import BuyerSearchScreen from './BuyerSearchScreen';
 import MapInventoryView from '../screens/MapInventoryView';
 import ProfileDashboard from '../screens/ProfileDashboard';
+import DiscoveryHome from '../screens/DiscoveryHome';
 
 const TABS = [
+  { id: 'Home', icon: 'home', label: 'Home' },
   { id: 'Search', icon: 'search', label: 'Search' },
   { id: 'Nearby', icon: 'map-pin', label: 'Nearby' },
   { id: 'Profile', icon: 'user', label: 'Profile' },
 ];
 
 export default function BuyerApp() {
-  const [activeTab, setActiveTab] = React.useState('Search');
+  const [activeTab, setActiveTab] = React.useState('Home');
 
   const renderScreen = () => {
     switch (activeTab) {
+      case 'Home': return <DiscoveryHome onOpenSearch={() => setActiveTab('Search')} />;
       case 'Search': return <BuyerSearchScreen />;
       case 'Nearby': return <MapInventoryView />;
       case 'Profile': return <ProfileDashboard />;
-      default: return <BuyerSearchScreen />;
+      default: return <DiscoveryHome onOpenSearch={() => setActiveTab('Search')} />;
     }
   };
 

@@ -1,10 +1,15 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar, Modal, TextInput } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 
 export default function ShopDashboardScreen() {
-  const { activeStock, removeStockItem, user } = useApp();
+  const { activeStock, removeStockItem, addStockItem, user } = useApp();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newProduct, setNewProduct] = useState('');
+  const [newQuantity, setNewQuantity] = useState('');
+  const [newPrice, setNewPrice] = useState('');
 
   // Mock revenue calculation
   const totalValue = activeStock.reduce((acc, item) => {
@@ -12,6 +17,15 @@ export default function ShopDashboardScreen() {
     const price = parseInt(item.price) || 0;
     return acc + (qty * price);
   }, 0);
+
+  const handleAddStock = () => {
+    if (!newProduct.trim()) return;
+    addStockItem(newProduct, newQuantity, newPrice);
+    setModalVisible(false);
+    setNewProduct('');
+    setNewQuantity('');
+    setNewPrice('');
+  };
 
   return (
     <View style={styles.container}>
@@ -72,6 +86,73 @@ export default function ShopDashboardScreen() {
           )}
         />
       )}
+
+      {/* Floating Action Button (FAB) for adding stock directly */}
+      <TouchableOpacity style={styles.fab} activeOpacity={0.9} onPress={() => setModalVisible(true)}>
+        <Feather name="plus" size={30} color="#FFF" />
+      </TouchableOpacity>
+
+      {/* Add Custom Inventory Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <View style={styles.handle} />
+            <Text style={styles.modalTitle}>Add Item to Shelf</Text>
+            <Text style={styles.modalSubTitle}>This will immediately become visible to nearby buyers on the map.</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Product Name</Text>
+              <TextInput 
+                style={styles.inputField} 
+                placeholder="e.g. Parle-G Biscuit 50g" 
+                value={newProduct} 
+                onChangeText={setNewProduct} 
+              />
+            </View>
+
+            <View style={styles.rowInputs}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                <Text style={styles.inputLabel}>Quantity</Text>
+                <TextInput 
+                  style={styles.inputField} 
+                  placeholder="e.g. 10" 
+                  keyboardType="numeric" 
+                  value={newQuantity} 
+                  onChangeText={setNewQuantity} 
+                />
+              </View>
+
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.inputLabel}>Price (₹)</Text>
+                <TextInput 
+                  style={styles.inputField} 
+                  placeholder="e.g. 25" 
+                  keyboardType="numeric" 
+                  value={newPrice} 
+                  onChangeText={setNewPrice} 
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.confirmBtn, !newProduct.trim() && { opacity: 0.5 }]} 
+              onPress={handleAddStock} 
+              activeOpacity={0.8}
+            >
+              <Text style={styles.confirmBtnText}>Add to Shelf</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+              setModalVisible(false);
+              setNewProduct('');
+              setNewQuantity('');
+              setNewPrice('');
+            }}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -107,4 +188,22 @@ const styles = StyleSheet.create({
   
   removeBtn: { backgroundColor: '#FEF2F2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   removeText: { color: '#DC2626', fontSize: 12, fontWeight: '700' },
+
+  fab: { position: 'absolute', bottom: 100, right: 24, width: 64, height: 64, borderRadius: 32, backgroundColor: '#3014b8', justifyContent: 'center', alignItems: 'center', shadowColor: '#3014b8', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
+  
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modal: { backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
+  handle: { width: 40, height: 5, backgroundColor: '#EBEBEB', borderRadius: 3, alignSelf: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 6 },
+  modalSubTitle: { fontSize: 14, color: '#888', marginBottom: 24, lineHeight: 20 },
+  
+  inputGroup: { marginBottom: 16 },
+  rowInputs: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 8 },
+  inputField: { backgroundColor: '#F5F6FA', borderRadius: 12, paddingHorizontal: 16, height: 50, fontSize: 15, color: '#111', borderWidth: 1, borderColor: '#EBEBEB' },
+  
+  confirmBtn: { backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 16 },
+  confirmBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  cancelBtn: { alignItems: 'center', paddingVertical: 16 },
+  cancelBtnText: { color: '#888', fontSize: 15, fontWeight: '600' },
 });

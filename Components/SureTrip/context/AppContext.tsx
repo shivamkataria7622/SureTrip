@@ -45,6 +45,7 @@ interface AppContextType {
   switchRole: () => void;
   respondToRequest: (id: string, response: 'yes' | 'no', quantity?: string, price?: string) => void;
   removeStockItem: (id: string) => void;
+  addStockItem: (product: string, quantity: string, price: string) => void;
   setupShop: (shopName: string, category: string, address: string) => void;
 }
 
@@ -136,10 +137,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setActiveStock(prev => prev.filter(i => i.id !== id));
   };
 
+  const addStockItem = (product: string, quantity: string, price: string) => {
+    if (!product.trim()) return;
+    const newItem: StockItem = {
+      id: Date.now().toString(),
+      product,
+      quantity: quantity || '-',
+      price: price || '-',
+      confirmedAt: 'Just now',
+    };
+    setActiveStock(prev => [newItem, ...prev]);
+  };
+
   return (
     <AppContext.Provider value={{
       user, isLoggedIn, activeRole, pendingRequests, activeStock,
-      login, logout, setRole, switchRole, respondToRequest, removeStockItem, setupShop
+      login, logout, setRole, switchRole, respondToRequest, removeStockItem, addStockItem, setupShop
     }}>
       {children}
     </AppContext.Provider>
