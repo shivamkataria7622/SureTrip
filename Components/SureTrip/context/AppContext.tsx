@@ -36,10 +36,11 @@ export interface StockItem {
 interface AppContextType {
   user: MockUser | null;
   isLoggedIn: boolean;
+  isLoading: boolean;
   activeRole: Role;
   pendingRequests: MockRequest[];
   activeStock: StockItem[];
-  login: (name: string, email: string) => void;
+  login: (name: string, email: string, role?: Role) => void;
   logout: () => void;
   setRole: (role: Role) => void;
   switchRole: () => void;
@@ -60,6 +61,7 @@ const MOCK_REQUESTS: MockRequest[] = [
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<MockUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeRole, setActiveRole] = useState<Role>(null);
   const [pendingRequests, setPendingRequests] = useState<MockRequest[]>(MOCK_REQUESTS);
   const [activeStock, setActiveStock] = useState<StockItem[]>([]);
@@ -77,17 +79,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsLoggedIn(true);
         setActiveRole(parsedUser.role);
       }
-    } catch {}
+    } catch {} finally {
+      setIsLoading(false);
+    }
   };
 
-  const login = async (name: string, email: string) => {
-    const newUser: MockUser = { name, email, role: null, points: 120 };
+  const login = async (name: string, email: string, role?: Role) => {
+    const newUser: MockUser = { name, email, role: role || null, points: 120 };
     setUser(newUser);
     setIsLoggedIn(true);
+    if (role) setActiveRole(role);
+    await AsyncStorage.setItem('user', JSON.stringify(newUser)); // Handle saving full object to standard key
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('suretrip_user');
+    
+    await AsyncStorage.removeItem('suretrip_user'); // Match loadSession and login
+    console.log("user removed from async storage");
     setUser(null);
     setIsLoggedIn(false);
     setActiveRole(null);
@@ -151,7 +159,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      user, isLoggedIn, activeRole, pendingRequests, activeStock,
+      user, isLoggedIn, isLoading, activeRole, pendingRequests, activeStock,
       login, logout, setRole, switchRole, respondToRequest, removeStockItem, addStockItem, setupShop
     }}>
       {children}

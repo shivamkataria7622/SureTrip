@@ -1,10 +1,41 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
+   Platform, StatusBar } from 'react-native';
+   import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 
 export default function RoleSelectScreen() {
   const { setRole, user } = useApp();
+  const handleRoleSelect = async (role: string) => {
+    const uid = await AsyncStorage.getItem('user');
+    try {
+      // 1. Call the backend to update the role
+      const response = await fetch('http://172.16.112.102:5000/api/users/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+         
+          uid: uid, // Make sure user object has uid
+          role: role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 2. Update the role in the App Context
+        setRole(role);
+        console.log('Role updated successfully:', data);
+      } else {
+        console.error('Failed to update role:', data.message);
+      }
+    } catch (error) {
+      console.error('Error updating role:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
