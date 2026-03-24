@@ -2,6 +2,7 @@ const { db } = require('../config/firebase');
 
 // Synchronize user profile from Firebase Auth into Firestore DB
 const signup = async (req, res) => {
+    console.log('Incoming Signup Request:', req.body);
     try {
         // Since verifyToken is bypassed, read directly from req.body
         const { email, name, password, role } = req.body;
@@ -24,7 +25,7 @@ const signup = async (req, res) => {
                 name: name || '',
                 createdAt: new Date().toISOString(),
                 fcmToken: '',
-                role: role || 'buyer',
+                role: role || null, // No default role until user selects one on the RoleSelectScreen
                 password: password
             });
             return res.status(201).json({ message: 'User profile created successfully', uid: uid });
@@ -42,6 +43,7 @@ const signup = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
+    console.log('Incoming Signin Request:', req.body);
     try {
         // Since verifyToken is bypassed, read from req.body or query
         const { email, password, name, role } = req.body;
@@ -97,6 +99,33 @@ const updateProfile = async (req, res) => {
     }
 };
 
+const getSellers = async (req, res) => {
+    try {
+        const sellersSnapshot = await db.collection('users')
+            .where('role', '==', 'seller')
+            .get();
+
+        const sellers = [];
+        sellersSnapshot.forEach((doc) => {
+            const data = doc.data();
+            sellers.push({
+                id: doc.id,
+                sellerId: doc.id, // email is the doc ID
+                shopName: data.shopName || data.name || 'Shop',
+                email: data.email,
+                shopCategory: data.shopCategory || 'General',
+                shopAddress: data.shopAddress || '',
+            });
+        });
+
+        return res.status(200).json(sellers);
+    } catch (error) {
+        console.error('Error fetching sellers:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports.updateProfile = updateProfile;
 module.exports.signup = signup;
 module.exports.getUserProfile = getUserProfile;
+module.exports.getSellers = getSellers;

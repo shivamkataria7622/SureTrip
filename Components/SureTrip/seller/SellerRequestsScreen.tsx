@@ -1,17 +1,61 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Platform, StatusBar, Switch } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Platform, StatusBar, Switch, Alert } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { API_BASE } from '../config/api';
 
 export default function SellerRequestsScreen() {
-  const { pendingRequests, respondToRequest } = useApp();
+  const { user } = useApp();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   const [isShopOpen, setIsShopOpen] = useState(true);
 
-  const pending = pendingRequests.filter(r => !r.responded);
+  const fetchOrders = useCallback(async () => {
+    if (!user?.email) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/orders/seller?sellerId=${user.email}`);
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data);
+      }
+    } catch (error) {
+      console.error('Fetch Orders Error:', error);
+    }
+  }, [user?.email]);
+
+  useEffect(() => {
+    fetchOrders();
+    // Poll for new orders every 10 seconds
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  const respondToRequest = async (id: string, response: 'yes' | 'no', q?: string, p?: string) => {
+    try {
+      const apiResponse = await fetch(`${API_BASE}/api/orders/${id}/respond`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ response, quantity: q, price: p }),
+      });
+
+      if (apiResponse.ok) {
+        fetchOrders(); // Refresh the list
+      } else {
+        const err = await apiResponse.json();
+        Alert.alert('Error', err.error || 'Failed to update order');
+      }
+    } catch (error) {
+      console.error('Respond Error:', error);
+      Alert.alert('Network Error', 'Failed to reach the server.');
+    }
+  };
 
   const openYesModal = (id: string, defPrice?: string) => {
     setSelectedId(id);
@@ -54,7 +98,7 @@ export default function SellerRequestsScreen() {
         </View>
       ) : (
         <FlatList
-          data={pendingRequests}
+          data={orders}
           keyExtractor={i => i.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
@@ -71,24 +115,24 @@ export default function SellerRequestsScreen() {
             <View style={[styles.requestCard, item.responded && styles.requestCardDone]}>
               
               {/* Urgency Badge */}
-              {!item.responded && (
+              {item.status === 'pending' && (
                 <View style={styles.urgencyBadge}>
                   <View style={styles.greenDot} />
-                  <Text style={styles.urgencyText}>Buyer is {item.distance}</Text>
+                  <Text style={styles.urgencyText}>New Request</Text>
                 </View>
               )}
 
               <View style={styles.cardTop}>
-                <View style={[styles.productIconWrapper, item.responded && { backgroundColor: '#F5F5F5' }]}>
-                  <Feather name="shopping-cart" size={20} color={item.responded ? '#AAA' : '#11706b'} />
+                <View style={[styles.productIconWrapper, item.status !== 'pending' && { backgroundColor: '#F5F5F5' }]}>
+                  <Feather name="shopping-cart" size={20} color={item.status !== 'pending' ? '#AAA' : '#11706b'} />
                 </View>
                 <View style={styles.cardInfo}>
-                  <Text style={[styles.productName, item.responded && { color: '#888' }]}>{item.product}</Text>
-                  <Text style={styles.buyerMeta}>{item.buyerName} • Asked {item.time}</Text>
+                  <Text style={[styles.productName, item.status !== 'pending' && { color: '#888' }]}>{item.productName}</Text>
+                  <Text style={styles.buyerMeta}>{item.buyerId} • Asked just now</Text>
                 </View>
               </View>
 
-              {!item.responded ? (
+              {item.status === 'pending' ? (
                 <View style={styles.actionRow}>
                   <TouchableOpacity style={styles.yesButton} onPress={() => openYesModal(item.id, '45')} activeOpacity={0.8}>
                     <Feather name="check-circle" size={18} color="#FFF" />
@@ -100,10 +144,10 @@ export default function SellerRequestsScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[styles.responseTag, item.response === 'yes' ? styles.responseYes : styles.responseNo]}>
-                  <Feather name={item.response === 'yes' ? 'check-circle' : 'x-circle'} size={15} color={item.response === 'yes' ? '#059669' : '#DC2626'} />
-                  <Text style={[styles.responseText, { color: item.response === 'yes' ? '#059669' : '#DC2626' }]}>
-                    {item.response === 'yes' ? `You replied YES • ₹${item.price} • ${item.quantity} units` : 'You replied Sold Out'}
+                <View style={[styles.responseTag, item.status === 'accepted' ? styles.responseYes : styles.responseNo]}>
+                  <Feather name={item.status === 'accepted' ? 'check-circle' : 'x-circle'} size={15} color={item.status === 'accepted' ? '#059669' : '#DC2626'} />
+                  <Text style={[styles.responseText, { color: item.status === 'accepted' ? '#059669' : '#DC2626' }]}>
+                    {item.status === 'accepted' ? `You replied YES • ₹${item.price} • ${item.quantity} units` : 'You replied Sold Out'}
                   </Text>
                 </View>
               )}

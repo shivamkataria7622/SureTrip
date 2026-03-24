@@ -89,7 +89,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser);
     setIsLoggedIn(true);
     if (role) setActiveRole(role);
-    await AsyncStorage.setItem('user', JSON.stringify(newUser)); // Handle saving full object to standard key
+    await AsyncStorage.setItem('suretrip_user', JSON.stringify(newUser)); // FIXED: must match the key in loadSession
   };
 
   const logout = async () => {

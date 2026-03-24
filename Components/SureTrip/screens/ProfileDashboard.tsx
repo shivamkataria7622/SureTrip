@@ -1,21 +1,31 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform, StatusBar, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
-
-const FAVORITE_SHOPS = [
-  { id: '1', name: 'Jain Provision Store', items: '24 items saved', image: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=200&fit=crop' },
-  { id: '2', name: 'Apollo Pharmacy', items: 'Prescriptions', image: 'https://images.unsplash.com/photo-1555633514-abcee6ab92e1?w=200&fit=crop' },
-];
-
-const RECENT_SEARCHES = [
-  { id: '1', query: 'Crocin Advance', location: 'Connaught Place', time: '2 hours ago' },
-  { id: '2', query: 'Amul Butter', location: 'Connaught Place', time: 'Yesterday' },
-  { id: '3', query: 'Parle-G Biscuit', location: 'New Delhi', time: 'Yesterday' },
-];
+import { API_BASE } from '../config/api';
 
 export default function ProfileDashboard() {
   const { user, logout, switchRole } = useApp();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user?.email) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/orders/buyer?buyerId=${user.email}`);
+        if (res.ok) {
+          const data = await res.json();
+          setOrders(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [user?.email]);
 
   return (
     <View style={styles.container}>
@@ -33,7 +43,7 @@ export default function ProfileDashboard() {
         <View style={styles.profileHeader}>
           <Image source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop' }} style={styles.avatar} />
           <View style={styles.profileTexts}>
-            <Text style={styles.userName}>{user?.name || 'Rahul Sharma'}</Text>
+            <Text style={styles.userName}>{user?.name || user?.email || 'Rahul Sharma'}</Text>
             <View style={styles.badgeRow}>
               <Feather name="shield" size={14} color="#11706b" />
               <Text style={styles.badgeText}>Explorer Level 3</Text>
@@ -44,8 +54,8 @@ export default function ProfileDashboard() {
         {/* Minimal Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>42</Text>
-            <Text style={styles.statLabel}>Verified</Text>
+            <Text style={styles.statNumber}>{orders.length}</Text>
+            <Text style={styles.statLabel}>Orders</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -61,44 +71,45 @@ export default function ProfileDashboard() {
 
         <View style={styles.sectionDivider} />
 
-        {/* Favorite Shops */}
+        {/* Recent Orders */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Saved Shops</Text>
+            <Text style={styles.sectionTitle}>Recent Orders</Text>
             <TouchableOpacity><Text style={styles.seeAllText}>See all</Text></TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}>
-            {FAVORITE_SHOPS.map(shop => (
-              <View key={shop.id} style={styles.shopCard}>
-                <Image source={{ uri: shop.image }} style={styles.shopImage} />
-                <View style={styles.shopInfo}>
-                  <Text style={styles.shopName} numberOfLines={1}>{shop.name}</Text>
-                  <Text style={styles.shopMeta}>{shop.items}</Text>
+          
+          {loading ? (
+            <ActivityIndicator size="small" color="#11706b" style={{ marginTop: 20 }} />
+          ) : orders.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: '#888', marginTop: 20 }}>No past orders found.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}>
+              {orders.map(order => (
+                <View key={order.id} style={styles.orderCard}>
+                  <View style={styles.orderTopRow}>
+                    <Feather name="shopping-bag" size={16} color="#11706b" />
+                    <Text style={[
+                      styles.orderStatus, 
+                      { color: order.status === 'accepted' ? '#059669' : order.status === 'rejected' ? '#DC2626' : '#F59E0B' }
+                    ]}>
+                      {order.status.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.orderProduct} numberOfLines={1}>{order.productName}</Text>
+                  <Text style={styles.orderShop} numberOfLines={1}>{order.shopName || order.sellerId}</Text>
+                  
+                  {order.status === 'accepted' && order.price ? (
+                    <Text style={styles.orderPrice}>₹{order.price} × {order.quantity}</Text>
+                  ) : (
+                    <Text style={styles.orderPrice}>Awaiting price</Text>
+                  )}
+                  <Text style={styles.orderDate}>
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </Text>
                 </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.sectionDivider} />
-
-        {/* Recent Searches Clean List */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { marginLeft: 24, marginBottom: 16 }]}>Recent Searches</Text>
-          <View style={{ paddingHorizontal: 24 }}>
-            {RECENT_SEARCHES.map((search, index) => (
-              <View key={search.id} style={[styles.searchItemRow, index !== RECENT_SEARCHES.length - 1 && styles.borderBottom]}>
-                <View style={styles.searchIconWrapper}>
-                  <Feather name="clock" size={18} color="#555" />
-                </View>
-                <View style={styles.searchTexts}>
-                  <Text style={styles.searchQuery}>{search.query}</Text>
-                  <Text style={styles.searchLocation}>{search.location}</Text>
-                </View>
-                <Feather name="arrow-up-right" size={16} color="#CCC" />
-              </View>
-            ))}
-          </View>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         <View style={styles.sectionDivider} />
@@ -171,4 +182,12 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   menuIconWrapper: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FAFAFA', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   menuText: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111' },
+  
+  orderCard: { width: 220, backgroundColor: '#FAFAFA', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#F0F0F0' },
+  orderTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  orderStatus: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  orderProduct: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 4 },
+  orderShop: { fontSize: 13, color: '#555', marginBottom: 12 },
+  orderPrice: { fontSize: 15, fontWeight: '600', color: '#111', marginBottom: 4 },
+  orderDate: { fontSize: 12, color: '#888' },
 });

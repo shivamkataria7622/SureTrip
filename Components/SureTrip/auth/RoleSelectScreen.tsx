@@ -3,22 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
    Platform, StatusBar } from 'react-native';
    import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useApp, Role } from '../context/AppContext';
+import { API_BASE } from '../config/api';
 
 export default function RoleSelectScreen() {
   const { setRole, user } = useApp();
-  const handleRoleSelect = async (role: string) => {
-    const uid = await AsyncStorage.getItem('user');
+  const handleRoleSelect = async (role: Role) => {
     try {
       // 1. Call the backend to update the role
-      const response = await fetch('http://172.16.112.102:5000/api/users/update', {
+      const response = await fetch(`${API_BASE}/api/users/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-         
-          uid: uid, // Make sure user object has uid
+          uid: user?.email, // The document ID in Firestore is the user's email
           role: role,
         }),
       });
@@ -46,7 +45,7 @@ export default function RoleSelectScreen() {
       </View>
 
       <View style={styles.cardsContainer}>
-        <TouchableOpacity style={styles.card} onPress={() => setRole('buyer')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.card} onPress={() => handleRoleSelect('buyer')} activeOpacity={0.85}>
           <View style={[styles.cardIcon, { backgroundColor: '#E0F2F1' }]}>
             <Feather name="shopping-bag" size={32} color="#11706b" />
           </View>
@@ -57,7 +56,7 @@ export default function RoleSelectScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, styles.cardSeller]} onPress={() => setRole('seller')} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.card, styles.cardSeller]} onPress={() => handleRoleSelect('seller')} activeOpacity={0.85}>
           <View style={[styles.cardIcon, { backgroundColor: '#E8FDF5' }]}>
             <Feather name="home" size={32} color="#059669" />
           </View>

@@ -7,7 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const firebase = require('./config/firebase');
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+const orderRoutes = require('./routes/orderRoutes');
 
 
 // Middleware
@@ -18,6 +18,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/', (req, res) => {
     res.send('SureTrip Backend is running!');
@@ -29,8 +30,8 @@ if (firebase.db) {
     firebase.db.listCollections()
         .then(() => {
             console.log('Firebase connection verified.');
-            app.listen(PORT, () => {
-                console.log(`Server started on port ${PORT}`);
+            app.listen(PORT, '0.0.0.0', () => {
+                console.log(`Server started on http://0.0.0.0:${PORT}`);
             });
         })
         .catch((error) => {

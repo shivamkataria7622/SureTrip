@@ -2,9 +2,11 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ActivityIndicator, Platform, StatusBar, ScrollView, Modal,
-  Image, Animated, Dimensions
+  Image, Animated, Dimensions, Alert
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
+import { API_BASE } from '../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -23,12 +25,13 @@ const QUICK_SUGGESTIONS = [
 ];
 
 const MOCK_RESULTS = [
-  { id: '1', shopName: 'Sharma Hardware Store', price: '₹45/pcs', quantity: '12 in stock', distance: '280m', verified: '2 min ago', category: 'Hardware', rating: '4.8', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚡ Fast Responder', badgeColor: '#FEF3C7', badgeTextColor: '#D97706' },
-  { id: '2', shopName: 'Gupta Sanitary Works', price: '₹42/pcs', quantity: '20 in stock', distance: '620m', verified: '5 min ago', category: 'Hardware', rating: '4.5', image: 'https://images.unsplash.com/photo-1542013936693-884638332954?w=150&h=150&fit=crop', badge: '🔥 Most Popular', badgeColor: '#FEE2E2', badgeTextColor: '#DC2626' },
-  { id: '3', shopName: 'Delhi Depot', price: '₹50/pcs', quantity: 'Only 2 left!', distance: '1.1km', verified: '8 min ago', category: 'Hardware', rating: '4.2', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚠️ Low Stock', badgeColor: '#FEF2F2', badgeTextColor: '#991B1B' },
+  { id: '1', shopName: 'Sharma Hardware Store', price: '₹45/pcs', quantity: '12 in stock', distance: '280m', verified: '2 min ago', category: 'Hardware', rating: '4.8', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚡ Fast Responder', badgeColor: '#FEF3C7', badgeTextColor: '#D97706', sellerId: 'nigga' },
+  { id: '2', shopName: 'Gupta Sanitary Works', price: '₹42/pcs', quantity: '20 in stock', distance: '620m', verified: '5 min ago', category: 'Hardware', rating: '4.5', image: 'https://images.unsplash.com/photo-1542013936693-884638332954?w=150&h=150&fit=crop', badge: '🔥 Most Popular', badgeColor: '#FEE2E2', badgeTextColor: '#DC2626', sellerId: 'gupta@example.com' },
+  { id: '3', shopName: 'Delhi Depot', price: '₹50/pcs', quantity: 'Only 2 left!', distance: '1.1km', verified: '8 min ago', category: 'Hardware', rating: '4.2', image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop', badge: '⚠️ Low Stock', badgeColor: '#FEF2F2', badgeTextColor: '#991B1B', sellerId: 'delhi@example.com' },
 ];
 
 export default function BuyerSearchScreen({ onClose }: { onClose?: () => void }) {
+  const { user } = useApp();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -39,7 +42,10 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
   // UI States
   const [filterVisible, setFilterVisible] = useState(false);
   const [cartItem, setCartItem] = useState<any>(null);
-  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'>('cart');
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'|'accepted'>('cart');
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [acceptedOrder, setAcceptedOrder] = useState<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Animated Header Values
@@ -55,7 +61,7 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
     extrapolate: 'clamp',
   });
 
-  const handleSearch = (searchQuery?: string) => {
+  const handleSearch = async (searchQuery?: string) => {
     const q = searchQuery ?? query;
     if (!q.trim()) return;
     setQuery(q);
@@ -65,10 +71,37 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
     if (!recentSearches.includes(q)) {
       setRecentSearches(prev => [q, ...prev].slice(0, 5));
     }
-    setTimeout(() => {
+
+    try {
+      // Fetch real sellers from the backend
+      const response = await fetch(`${API_BASE}/api/users/sellers`);
+      if (response.ok) {
+        const sellers = await response.json();
+        // Map sellers to the result card format
+        const mapped = sellers.map((s: any, i: number) => ({
+          id: s.sellerId,
+          shopName: s.shopName,
+          price: '₹45/pcs', // default until inventory is built
+          quantity: 'In stock',
+          distance: `${(i + 1) * 300}m`,
+          category: s.shopCategory,
+          rating: '4.5',
+          image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop',
+          badge: '✅ Verified Seller',
+          badgeColor: '#E0F2F1',
+          badgeTextColor: '#11706b',
+          sellerId: s.sellerId,
+        }));
+        setResults(mapped.length > 0 ? mapped : MOCK_RESULTS);
+      } else {
+        setResults(MOCK_RESULTS); // fallback to mock if API fails
+      }
+    } catch (error) {
+      console.error('Search Error:', error);
+      setResults(MOCK_RESULTS); // fallback to mock on network error
+    } finally {
       setLoading(false);
-      setResults(MOCK_RESULTS);
-    }, 2000);
+    }
   };
 
   const clearSearch = () => {
@@ -80,17 +113,83 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
   const openCheckout = (item: any) => {
     setCartItem(item);
     setCheckoutStep('cart');
+    setIsCheckoutOpen(true);
   };
 
-  const processPayment = () => {
+  const processPayment = async () => {
+    if (!user?.email) {
+      Alert.alert('Login Required', 'Please login to reserve items.');
+      return;
+    }
+
     setCheckoutStep('processing');
-    setTimeout(() => {
-      setCheckoutStep('success');
-    }, 2500);
+
+    try {
+      const orderData = {
+        buyerId: user.email,
+        sellerId: cartItem?.sellerId || '123',
+        productName: query || cartItem?.shopName || 'Item', // Use the search query as the product name
+        shopName: cartItem?.shopName,                        // Keep shop name separately
+        price: cartItem?.price || '0',
+        quantity: 1,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${API_BASE}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrderId(data.orderId);
+        setCheckoutStep('success');
+        // Start polling for seller's response
+        pollForSellerResponse(data.orderId);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        Alert.alert('Error', err.error || 'Failed to create order');
+        setCheckoutStep('cart');
+      }
+    } catch (error) {
+      console.error('Reservation Error:', error);
+      Alert.alert('Network Error', 'Could not connect to the server.');
+      setCheckoutStep('cart');
+    }
+  };
+
+  const pollForSellerResponse = (oid: string) => {
+    // Poll every 5 seconds to see if seller accepted with price/quantity
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/orders/${oid}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'accepted') {
+            setAcceptedOrder(data);
+            setCheckoutStep('accepted');
+            setIsCheckoutOpen(true); // Re-open modal so buyer sees the confirmation!
+            clearInterval(interval);
+          }
+        }
+      } catch (e) {
+        // silent fail, keep polling
+      }
+    }, 5000);
+    // Stop polling after 5 minutes
+    setTimeout(() => clearInterval(interval), 300000);
   };
 
   const closeCheckout = () => {
-    setCartItem(null);
+    setIsCheckoutOpen(false);
+    // Only clear cart state if not waiting for seller (clear on accepted/cart, not on success)
+    if (checkoutStep !== 'success') {
+      setCartItem(null);
+    }
   };
 
   return (
@@ -285,7 +384,7 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
       </Modal>
 
       {/* Checkout Modal */}
-      <Modal visible={!!cartItem} transparent animationType="slide">
+      <Modal visible={isCheckoutOpen} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.bottomSheet}>
             {checkoutStep === 'cart' && (
@@ -333,12 +432,37 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
 
             {checkoutStep === 'success' && (
               <View style={styles.successContainer}>
-                <View style={styles.successIconBox}>
+                <View style={[styles.successIconBox, { backgroundColor: '#F59E0B' }]}>
+                  <Feather name="clock" size={40} color="#FFF" />
+                </View>
+                <Text style={styles.successTitle}>Request Sent!</Text>
+                <Text style={styles.successSub}>
+                  Waiting for {cartItem?.shopName} to confirm your reservation...{'\n\n'}
+                  Order ID: {orderId?.slice(0, 8).toUpperCase()}
+                </Text>
+                <ActivityIndicator size="small" color="#F59E0B" style={{ marginBottom: 12 }} />
+                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#F59E0B', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
+                  <Text style={styles.payBtnText}>Close (We'll update when confirmed)</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {checkoutStep === 'accepted' && (
+              <View style={styles.successContainer}>
+                <View style={[styles.successIconBox, { backgroundColor: '#059669' }]}>
                   <Feather name="check" size={40} color="#FFF" />
                 </View>
-                <Text style={styles.successTitle}>Reservation Confirmed!</Text>
-                <Text style={styles.successSub}>Show Order #X7B9 to the shopkeeper at {cartItem?.shopName} to pickup your item.</Text>
-                
+                <Text style={styles.successTitle}>🎉 Seller Confirmed!</Text>
+                <View style={{ width: '100%', backgroundColor: '#F0FDF4', borderRadius: 14, padding: 16, marginVertical: 16 }}>
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 8 }}>✅ Item reserved at {cartItem?.shopName}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '800', color: '#059669' }}>
+                    ₹{acceptedOrder?.price} × {acceptedOrder?.quantity} unit(s)
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>
+                    Order ID: {orderId?.slice(0, 8).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.successSub}>Show this screen to the shopkeeper to pick up your item!</Text>
                 <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
                   <Text style={styles.payBtnText}>Done</Text>
                 </TouchableOpacity>

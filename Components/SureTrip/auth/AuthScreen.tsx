@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
   import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
+import { API_BASE } from '../config/api';
 
 export default function AuthScreen() {
   const { login } = useApp();
@@ -20,7 +21,7 @@ export default function AuthScreen() {
     }
 
     try {
-      const Receive = await fetch('http://172.16.112.102:5000/api/users/signin', {
+      const Receive = await fetch(`${API_BASE}/api/users/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,10 +48,12 @@ export default function AuthScreen() {
         const storedUid = data.uid || data.user?.uid;
         setUid(storedUid);
         console.log("data", Receive);
-        login(name.trim(), email.trim(), data.user?.role || 'buyer'); // Fallback lets existing logins skip RoleSelectScreen
+        login(name.trim(), email.trim(), data.user?.role); // No fallback, so it correctly routes to RoleSelectScreen if role is null
       } else {
-         console.log("data",Receive);
-        Alert.alert('Error', 'Login / Sign up failed');
+        console.log("Login failed with status:", Receive.status);
+        const errorData = await Receive.json().catch(() => ({}));
+        console.log("Error details:", errorData);
+        Alert.alert('Error', `Login failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.log('Error', error);
@@ -65,7 +68,7 @@ export default function AuthScreen() {
     }
 
     try {
-      const Receive = await fetch('http://172.16.112.102:5000/api/users/signup', {
+      const Receive = await fetch(`${API_BASE}/api/users/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,9 +89,17 @@ export default function AuthScreen() {
         setUid(storedUid);
         console.log("data", Receive);
         login(name.trim(), email.trim(), data.user?.role); // Omit 'buyer' default so it routes to RoleSelectScreen if role is null
+      } else if (Receive.status === 200) {
+        // User already existed but syncing returned 200
+        const data = await Receive.json();
+        const storedUid = data.uid || data.user?.uid;
+        setUid(storedUid);
+        login(name.trim(), email.trim(), data.user?.role);
       } else {
-         console.log("data",Receive);
-        Alert.alert('Error', 'Login / Sign up failed');
+        console.log("Signup failed with status:", Receive.status);
+        const errorData = await Receive.json().catch(() => ({}));
+        console.log("Error details:", errorData);
+        Alert.alert('Error', `Signup failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.log('Error', error);
