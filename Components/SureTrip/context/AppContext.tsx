@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type Role = 'buyer' | 'seller' | null;
 
 export interface MockUser {
+  uid: string;
   name: string;
   email: string;
   role: Role;
@@ -11,6 +12,7 @@ export interface MockUser {
   shopName?: string;
   shopCategory?: string;
   shopAddress?: string;
+  shopImageUrl?: string;
 }
 
 export interface MockRequest {
@@ -40,9 +42,10 @@ interface AppContextType {
   activeRole: Role;
   pendingRequests: MockRequest[];
   activeStock: StockItem[];
-  login: (name: string, email: string, role?: Role) => void;
+  login: (uid: string, name: string, email: string, role?: Role, shopName?: string, shopCategory?: string, shopAddress?: string) => void;
   logout: () => void;
   setRole: (role: Role) => void;
+  updateUser: (updates: Partial<MockUser>) => void;
   switchRole: () => void;
   respondToRequest: (id: string, response: 'yes' | 'no', quantity?: string, price?: string) => void;
   removeStockItem: (id: string) => void;
@@ -84,8 +87,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (name: string, email: string, role?: Role) => {
-    const newUser: MockUser = { name, email, role: role || null, points: 120 };
+  const login = async (uid: string, name: string, email: string, role?: Role, shopName?: string, shopCategory?: string, shopAddress?: string) => {
+    const newUser: MockUser = { uid, name, email, role: role || null, shopName, shopCategory, shopAddress, points: 120 };
     setUser(newUser);
     setIsLoggedIn(true);
     if (role) setActiveRole(role);
@@ -106,6 +109,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...user, role };
     setUser(updated);
     setActiveRole(role);
+    await AsyncStorage.setItem('suretrip_user', JSON.stringify(updated));
+  };
+
+  const updateUser = async (updates: Partial<MockUser>) => {
+    if (!user) return;
+    const updated = { ...user, ...updates };
+    setUser(updated);
     await AsyncStorage.setItem('suretrip_user', JSON.stringify(updated));
   };
 
@@ -160,7 +170,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       user, isLoggedIn, isLoading, activeRole, pendingRequests, activeStock,
-      login, logout, setRole, switchRole, respondToRequest, removeStockItem, addStockItem, setupShop
+      login, logout, setRole, updateUser, switchRole, respondToRequest, removeStockItem, addStockItem, setupShop
     }}>
       {children}
     </AppContext.Provider>

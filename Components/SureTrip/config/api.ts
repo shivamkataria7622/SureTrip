@@ -3,4 +3,4 @@
 // ngrok tunnel:        'https://abc123.ngrok-free.app'
 // Production:          'https://api.suretrip.app'
 
-export const API_BASE = 'http://172.16.112.32:5000';
+export const API_BASE = 'http://172.16.112.58:5000';

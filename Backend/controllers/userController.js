@@ -115,6 +115,8 @@ const getSellers = async (req, res) => {
                 email: data.email,
                 shopCategory: data.shopCategory || 'General',
                 shopAddress: data.shopAddress || '',
+                shopImageUrl: data.shopImageUrl || null, 
+                shopBio: data.shopBio || '',
             });
         });
 
@@ -125,6 +127,39 @@ const getSellers = async (req, res) => {
     }
 };
 
+const updateshopprofile = async (req, res) => {
+    try {
+        const { email, shopName, shopCategory, shopAddress, shopImageUrl } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: 'email is required in request body' });
+        }
+        
+        // Firestore uses email as the document ID (set during signup)
+        const userRef = db.collection('users').doc(email);
+        const doc = await userRef.get();
+        
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        const updates = {
+            updatedAt: new Date().toISOString(),
+        };
+        if (shopName) updates.shopName = shopName;
+        if (shopCategory) updates.shopCategory = shopCategory;
+        if (shopAddress) updates.shopAddress = shopAddress;
+        if (shopImageUrl) updates.shopImageUrl = shopImageUrl;
+
+        await userRef.update(updates);
+        
+        return res.status(200).json({ message: 'Shop profile updated successfully' });
+    } catch (error) {
+        console.error('Error updating shop profile:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+module.exports.updateshopprofile = updateshopprofile;
 module.exports.updateProfile = updateProfile;
 module.exports.signup = signup;
 module.exports.getUserProfile = getUserProfile;

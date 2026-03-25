@@ -48,7 +48,7 @@ export default function AuthScreen() {
         const storedUid = data.uid || data.user?.uid;
         setUid(storedUid);
         console.log("data", Receive);
-        login(name.trim(), email.trim(), data.user?.role); // No fallback, so it correctly routes to RoleSelectScreen if role is null
+        login(storedUid, name.trim(), email.trim(), data.user?.role, data.user?.shopName, data.user?.shopCategory, data.user?.shopAddress); // No fallback, so it correctly routes to RoleSelectScreen if role is null
       } else {
         console.log("Login failed with status:", Receive.status);
         const errorData = await Receive.json().catch(() => ({}));
@@ -88,13 +88,13 @@ export default function AuthScreen() {
         const storedUid = data.uid || data.user?.uid;
         setUid(storedUid);
         console.log("data", Receive);
-        login(name.trim(), email.trim(), data.user?.role); // Omit 'buyer' default so it routes to RoleSelectScreen if role is null
+        login(storedUid, name.trim(), email.trim(), data.user?.role, data.user?.shopName, data.user?.shopCategory, data.user?.shopAddress); // Omit 'buyer' default so it routes to RoleSelectScreen if role is null
       } else if (Receive.status === 200) {
         // User already existed but syncing returned 200
         const data = await Receive.json();
         const storedUid = data.uid || data.user?.uid;
         setUid(storedUid);
-        login(name.trim(), email.trim(), data.user?.role);
+        login(storedUid, name.trim(), email.trim(), data.user?.role, data.user?.shopName, data.user?.shopCategory, data.user?.shopAddress);
       } else {
         console.log("Signup failed with status:", Receive.status);
         const errorData = await Receive.json().catch(() => ({}));

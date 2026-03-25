@@ -43,7 +43,7 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
   const [filterVisible, setFilterVisible] = useState(false);
   const [cartItem, setCartItem] = useState<any>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'|'accepted'>('cart');
+  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'|'accepted'|'confirmed'>('cart');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [acceptedOrder, setAcceptedOrder] = useState<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -81,12 +81,11 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
         const mapped = sellers.map((s: any, i: number) => ({
           id: s.sellerId,
           shopName: s.shopName,
-          price: '₹45/pcs', // default until inventory is built
-          quantity: 'In stock',
           distance: `${(i + 1) * 300}m`,
           category: s.shopCategory,
           rating: '4.5',
-          image: 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop',
+          image: s.shopImageUrl || 'https://images.unsplash.com/photo-1588612143431-bdee18542289?w=150&h=150&fit=crop',
+          address: s.shopAddress,
           badge: '✅ Verified Seller',
           badgeColor: '#E0F2F1',
           badgeTextColor: '#11706b',
@@ -332,21 +331,20 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
                     <Ionicons name="star" size={12} color="#F59E0B" />
                     <Text style={[styles.metaText, {color: '#F59E0B', fontWeight: '700'}]}>{item.rating}</Text>
                     <View style={styles.dot} />
-                    <Feather name="map-pin" size={11} color="#888" />
+                    <Feather name="navigation" size={11} color="#888" />
                     <Text style={styles.metaText}>{item.distance}</Text>
                   </View>
-
-                  <Text style={styles.price}>{item.price}</Text>
+                  
+                  <View style={[styles.metaRow, { marginTop: 2, marginBottom: 8 }]}>
+                    <Feather name="map-pin" size={11} color="#888" />
+                    <Text style={[styles.metaText, { flex: 1 }]} numberOfLines={1}>{item.address || 'Address not provided'}</Text>
+                  </View>
                 </View>
               </View>
               
-              <View style={styles.cardBottom}>
-                <View style={[styles.stockBadge, item.quantity.includes('Only') && { backgroundColor: '#FEF2F2' }]}>
-                  <Feather name="check-circle" size={13} color={item.quantity.includes('Only') ? '#DC2626' : '#059669'} />
-                  <Text style={[styles.stockText, item.quantity.includes('Only') && { color: '#DC2626' }]}>{item.quantity}</Text>
-                </View>
+              <View style={[styles.cardBottom, { justifyContent: 'flex-end' }]}>
                 <TouchableOpacity style={styles.reserveBtn} onPress={() => openCheckout(item)}>
-                  <Text style={styles.reserveBtnText}>Reserve</Text>
+                  <Text style={styles.reserveBtnText}>Ask if Available</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -394,27 +392,24 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
                 
                 <View style={styles.cartCard}>
                   <Image source={{ uri: cartItem?.image }} style={styles.cartImage} />
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={styles.cartItemName}>{cartItem?.shopName}</Text>
-                    <Text style={styles.cartItemSub}>{cartItem?.category || 'Hardware Item'} • {cartItem?.price}</Text>
+                    <Text style={styles.cartItemSub}>{cartItem?.category || 'General Store'}</Text>
+                    <View style={[styles.metaRow, { marginTop: 4 }]}>
+                      <Feather name="map-pin" size={11} color="#888" />
+                      <Text style={[styles.metaText, { flex: 1 }]} numberOfLines={1}>{cartItem?.address || 'Address not provided'}</Text>
+                    </View>
                   </View>
                 </View>
 
-                <View style={styles.billRow}>
-                  <Text style={styles.billText}>Item Total</Text>
-                  <Text style={styles.billText}>{cartItem?.price}</Text>
-                </View>
-                <View style={styles.billRow}>
-                  <Text style={styles.billText}>Platform Fee</Text>
-                  <Text style={styles.billText}>₹2</Text>
-                </View>
-                <View style={[styles.billRow, { borderTopWidth: 1, borderTopColor: '#EEE', paddingTop: 12, marginTop: 12 }]}>
-                  <Text style={styles.billTotal}>To Pay</Text>
-                  <Text style={styles.billTotal}>{cartItem?.price}</Text>
+                <View style={{ padding: 16, backgroundColor: '#F5F6FA', borderRadius: 12, marginVertical: 16 }}>
+                  <Text style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>You are asking this shop for:</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>"{query || 'Item'}"</Text>
+                  <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>The shopkeeper will reply with availability and price.</Text>
                 </View>
 
                 <TouchableOpacity style={styles.payBtn} onPress={processPayment} activeOpacity={0.8}>
-                   <Text style={styles.payBtnText}>Pay via UPI & Reserve</Text>
+                   <Text style={styles.payBtnText}>Send Inquiry</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.cancelCheckoutBtn} onPress={closeCheckout}>
                   <Text style={styles.cancelCheckoutText}>Cancel</Text>
@@ -462,8 +457,46 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
                     Order ID: {orderId?.slice(0, 8).toUpperCase()}
                   </Text>
                 </View>
-                <Text style={styles.successSub}>Show this screen to the shopkeeper to pick up your item!</Text>
-                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
+                <Text style={styles.successSub}>Do you want to reserve this item?</Text>
+                
+                <View style={[styles.billRow, { width: '100%', marginTop: 8 }]}>
+                  <Text style={styles.billText}>Item Total (Pay at shop)</Text>
+                  <Text style={styles.billText}>₹{acceptedOrder?.price}</Text>
+                </View>
+                <View style={[styles.billRow, { width: '100%', borderBottomWidth: 1, borderBottomColor: '#EEE', paddingBottom: 12, marginBottom: 16 }]}>
+                  <Text style={styles.billText}>Reservation Fee</Text>
+                  <Text style={styles.billText}>₹2</Text>
+                </View>
+
+                <TouchableOpacity onPress={() => setCheckoutStep('confirmed')} style={{ width: '100%', backgroundColor: '#059669', borderRadius: 14, paddingVertical: 16, alignItems: 'center' }}>
+                  <Text style={styles.payBtnText}>Pay ₹2 & Reserve</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', paddingVertical: 16, alignItems: 'center' }}>
+                  <Text style={[styles.payBtnText, { color: '#888' }]}>Decline</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {checkoutStep === 'confirmed' && (
+              <View style={styles.successContainer}>
+                <View style={[styles.successIconBox, { backgroundColor: '#11706b' }]}>
+                  <Feather name="check" size={40} color="#FFF" />
+                </View>
+                <Text style={styles.successTitle}>Reservation Confirmed!</Text>
+                <Text style={styles.successSub}>Show this screen to the shopkeeper to pick up your item.</Text>
+                
+                <View style={{ width: '100%', backgroundColor: '#F5F6FA', borderRadius: 14, padding: 16, marginVertical: 16 }}>
+                  <Text style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>Reserved at {cartItem?.shopName}</Text>
+                   <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>"{query || 'Item'}"</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#059669', marginTop: 8 }}>
+                    Amount to Pay at Shop: ₹{acceptedOrder?.price}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>
+                    Order ID: {orderId?.slice(0, 8).toUpperCase()}
+                  </Text>
+                </View>
+
+                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#111', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
                   <Text style={styles.payBtnText}>Done</Text>
                 </TouchableOpacity>
               </View>
