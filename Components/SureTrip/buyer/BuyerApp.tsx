@@ -19,6 +19,8 @@ const TABS = [
 export default function BuyerApp() {
   const [activeTab, setActiveTab] = React.useState('Home');
   const [searchOpen, setSearchOpen] = React.useState(false);
+  // When true: map is in navigation mode → hide tab bar for full-screen immersion
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   // Animated value for slide-up effect
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -44,7 +46,11 @@ export default function BuyerApp() {
   const renderScreen = () => {
     switch (activeTab) {
       case 'Home':    return <DiscoveryHome onOpenSearch={openSearch} />;
-      case 'Nearby':  return <MapInventoryView />;
+      case 'Nearby':  return (
+        <MapInventoryView
+          onNavigationChange={setIsNavigating}
+        />
+      );
       case 'Profile': return <ProfileDashboard />;
       default:        return <DiscoveryHome onOpenSearch={openSearch} />;
     }
@@ -71,18 +77,20 @@ export default function BuyerApp() {
       {/* Main content */}
       <View style={{ flex: 1 }}>{renderScreen()}</View>
 
-      {/* Bottom Tab Bar */}
-      <View style={styles.tabBarWrapper}>
-        {Platform.OS === 'android' ? (
-          <View style={[styles.tabBarInner, { backgroundColor: 'rgba(255,255,255,0.97)' }]}>
-            <TabBar tabs={TABS} />
-          </View>
-        ) : (
-          <BlurView intensity={80} tint="light" style={styles.tabBarInner}>
-            <TabBar tabs={TABS} />
-          </BlurView>
-        )}
-      </View>
+      {/* Bottom Tab Bar — hidden during navigation for full-screen immersion */}
+      {!isNavigating && (
+        <View style={styles.tabBarWrapper}>
+          {Platform.OS === 'android' ? (
+            <View style={[styles.tabBarInner, { backgroundColor: 'rgba(255,255,255,0.97)' }]}>
+              <TabBar tabs={TABS} />
+            </View>
+          ) : (
+            <BlurView intensity={80} tint="light" style={styles.tabBarInner}>
+              <TabBar tabs={TABS} />
+            </BlurView>
+          )}
+        </View>
+      )}
 
       {/* BuyerSearchScreen — slides up from bottom as an overlay */}
       {searchOpen && (

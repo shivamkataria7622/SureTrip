@@ -17,7 +17,7 @@ function AppNavigator() {
     );
   }
 
-  if (!isLoggedIn || user === null) return <AuthScreen />;
+  if (!isLoggedIn ) return <AuthScreen />;
   if (!activeRole) return <RoleSelectScreen />;
   if (activeRole === 'buyer') return <BuyerApp />;
   if (activeRole === 'seller') return <SellerApp />;
