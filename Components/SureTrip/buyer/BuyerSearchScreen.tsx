@@ -31,7 +31,7 @@ const MOCK_RESULTS = [
 ];
 
 export default function BuyerSearchScreen({ onClose }: { onClose?: () => void }) {
-  const { user } = useApp();
+  const { user, activeStock } = useApp();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading] = useState(false);
@@ -72,12 +72,13 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
       setRecentSearches(prev => [q, ...prev].slice(0, 5));
     }
 
+    let baseResults: any[] = [...MOCK_RESULTS];
+
     try {
       // Fetch real sellers from the backend
       const response = await fetch(`${API_BASE}/api/users/sellers`);
       if (response.ok) {
         const sellers = await response.json();
-        // Map sellers to the result card format
         const mapped = sellers.map((s: any, i: number) => ({
           id: s.sellerId,
           shopName: s.shopName,
@@ -90,17 +91,36 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
           badgeColor: '#E0F2F1',
           badgeTextColor: '#11706b',
           sellerId: s.sellerId,
+          price: '—',
+          quantity: 'Ask shop',
         }));
-        setResults(mapped.length > 0 ? mapped : MOCK_RESULTS);
-      } else {
-        setResults(MOCK_RESULTS); // fallback to mock if API fails
+        if (mapped.length > 0) baseResults = mapped;
       }
     } catch (error) {
       console.error('Search Error:', error);
-      setResults(MOCK_RESULTS); // fallback to mock on network error
-    } finally {
-      setLoading(false);
+    } 
+    
+    // Check for Instant Match in activeStock
+    const queryLower = q.toLowerCase();
+    const instantMatches = activeStock.filter(item => item.product.toLowerCase().includes(queryLower));
+
+    if (instantMatches.length > 0 && baseResults.length > 0) {
+      // Inject the matching stock into the first search result to simulate that shop having it
+      const match = instantMatches[0];
+      baseResults[0] = {
+        ...baseResults[0],
+        isInstant: true,
+        price: `₹${match.price}`,
+        quantity: `${match.quantity} units available`,
+        badge: '⚡ In Stock Now',
+        badgeColor: '#ECFDF5',
+        badgeTextColor: '#059669',
+        instantItem: match
+      };
     }
+
+    setResults(baseResults);
+    setLoading(false);
   };
 
   const clearSearch = () => {
@@ -124,14 +144,15 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
     setCheckoutStep('processing');
 
     try {
+      const isInstant = cartItem?.isInstant;
       const orderData = {
         buyerId: user.email,
         sellerId: cartItem?.sellerId || '123',
-        productName: query || cartItem?.shopName || 'Item', // Use the search query as the product name
-        shopName: cartItem?.shopName,                        // Keep shop name separately
-        price: cartItem?.price || '0',
+        productName: isInstant ? cartItem.instantItem.product : (query || cartItem?.shopName || 'Item'),
+        shopName: cartItem?.shopName,
+        price: isInstant ? cartItem.instantItem.price : (cartItem?.price || '0'),
         quantity: 1,
-        status: 'pending',
+        status: isInstant ? 'accepted' : 'pending',
         createdAt: new Date().toISOString(),
       };
 
@@ -146,9 +167,16 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
       if (response.ok) {
         const data = await response.json();
         setOrderId(data.orderId);
-        setCheckoutStep('success');
-        // Start polling for seller's response
-        pollForSellerResponse(data.orderId);
+        
+        if (isInstant) {
+          // Bypass waiting - go straight to accepted
+          setAcceptedOrder({...orderData, _id: data.orderId, price: orderData.price, quantity: orderData.quantity });
+          setCheckoutStep('accepted');
+        } else {
+          setCheckoutStep('success');
+          // Start polling for seller's response
+          pollForSellerResponse(data.orderId);
+        }
       } else {
         const err = await response.json().catch(() => ({}));
         Alert.alert('Error', err.error || 'Failed to create order');
@@ -195,21 +223,19 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
     <View style={styles.container}>
       {/* Sticky Top Nav */}
       <View style={styles.topNav}>
-        {/* Back Button */}
-        {onClose && (
-          <TouchableOpacity onPress={onClose} style={styles.backBtn}>
-            <Feather name="arrow-left" size={22} color="#111" />
-          </TouchableOpacity>
-        )}
-        <View style={styles.locationRow}>
-          <Feather name="map-pin" size={13} color="#11706b" />
-          <Text style={styles.locationText}>Connaught Place, New Delhi</Text>
-          <Feather name="chevron-down" size={13} color="#888" />
+        {/* Header Row: Back Button & Location */}
+        <View style={styles.headerRow}>
+          {onClose && (
+            <TouchableOpacity onPress={onClose} style={styles.backBtn}>
+              <Feather name="arrow-left" size={22} color="#111" />
+            </TouchableOpacity>
+          )}
+          <View style={styles.locationRow}>
+            <Feather name="map-pin" size={13} color="#11706b" />
+            <Text style={styles.locationText}>Connaught Place, New Delhi</Text>
+            <Feather name="chevron-down" size={13} color="#888" />
+          </View>
         </View>
-        
-        <Animated.View style={{ height: titleHeight, opacity: titleOpacity, overflow: 'hidden' }}>
-          <Text style={styles.title}>Find Anything Nearby</Text>
-        </Animated.View>
 
         {/* Search Bar + Filter Icon */}
         <View style={styles.searchRow}>
@@ -342,9 +368,18 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
                 </View>
               </View>
               
-              <View style={[styles.cardBottom, { justifyContent: 'flex-end' }]}>
-                <TouchableOpacity style={styles.reserveBtn} onPress={() => openCheckout(item)}>
-                  <Text style={styles.reserveBtnText}>Ask if Available</Text>
+              <View style={[styles.cardBottom, { justifyContent: 'space-between' }]}>
+                {item.isInstant && (
+                  <View style={styles.stockBadge}>
+                    <Feather name="check-circle" size={14} color="#059669" />
+                    <Text style={styles.stockText}>{item.price}</Text>
+                  </View>
+                )}
+                {!item.isInstant && <View />}
+                <TouchableOpacity style={[styles.reserveBtn, item.isInstant && { backgroundColor: '#059669', borderColor: '#059669' }]} onPress={() => openCheckout(item)}>
+                  <Text style={[styles.reserveBtnText, item.isInstant && { color: '#FFF' }]}>
+                    {item.isInstant ? 'Reserve Now' : 'Ask if Available'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -403,13 +438,24 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
                 </View>
 
                 <View style={{ padding: 16, backgroundColor: '#F5F6FA', borderRadius: 12, marginVertical: 16 }}>
-                  <Text style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>You are asking this shop for:</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>"{query || 'Item'}"</Text>
-                  <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>The shopkeeper will reply with availability and price.</Text>
+                  {cartItem?.isInstant ? (
+                    <>
+                      <Text style={{ fontSize: 13, color: '#059669', marginBottom: 4, fontWeight: '700' }}>Available In Store!</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>{cartItem.instantItem.product}</Text>
+                      <Text style={{ fontSize: 15, color: '#111', marginTop: 4 }}>Price: ₹{cartItem.instantItem.price}</Text>
+                      <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>Ready to be reserved for pickup immediately.</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 13, color: '#555', marginBottom: 4 }}>You are asking this shop for:</Text>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>"{query || 'Item'}"</Text>
+                      <Text style={{ fontSize: 13, color: '#888', marginTop: 8 }}>The shopkeeper will reply with availability and price.</Text>
+                    </>
+                  )}
                 </View>
 
                 <TouchableOpacity style={styles.payBtn} onPress={processPayment} activeOpacity={0.8}>
-                   <Text style={styles.payBtnText}>Send Inquiry</Text>
+                   <Text style={styles.payBtnText}>{cartItem?.isInstant ? 'Confirm Reservation' : 'Send Inquiry'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.cancelCheckoutBtn} onPress={closeCheckout}>
                   <Text style={styles.cancelCheckoutText}>Cancel</Text>
@@ -512,19 +558,20 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   topNav: { backgroundColor: '#FFFFFF', paddingHorizontal: 0, paddingTop: 18, zIndex: 10 },
-  backBtn: { marginLeft: 24, marginBottom: 8, padding: 4, alignSelf: 'flex-start' },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 5, paddingHorizontal: 24 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, marginBottom: 8 },
+  backBtn: { padding: 4, marginRight: 12 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   locationText: { fontSize: 13, color: '#555', fontWeight: '500' },
   title: { fontSize: 26, fontWeight: '800', color: '#111', letterSpacing: -0.3, paddingHorizontal: 24 },
-  searchRow: { flexDirection: 'row', paddingHorizontal: 24, marginTop: 10, gap: 10, alignItems: 'center' },
-  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F6FA', borderRadius: 14, paddingHorizontal: 16, height: 50, borderWidth: 1, borderColor: '#EBEBEB' },
-  searchInput: { flex: 1, fontSize: 15, color: '#111' },
+  searchRow: { flexDirection: 'row', paddingHorizontal: 24, marginTop: 16, marginBottom: 8, gap: 10, alignItems: 'center' },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F2F5', borderRadius: 16, paddingHorizontal: 16, height: 52 },
+  searchInput: { flex: 1, fontSize: 16, color: '#111', fontWeight: '500' },
   divider: { width: 1, height: 20, backgroundColor: '#CCC', marginHorizontal: 12 },
   filterBtn: { width: 50, height: 50, borderRadius: 14, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#EBEBEB' },
   
-  categoryScroll: { backgroundColor: '#FFFFFF', paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#EBEBEB' },
-  chipActive: { backgroundColor: '#111', borderColor: '#111' },
+  categoryScroll: { backgroundColor: '#FFFFFF', paddingBottom: 16 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, backgroundColor: '#F0F2F5' },
+  chipActive: { backgroundColor: '#111' },
   chipText: { fontSize: 13, fontWeight: '600', color: '#555' },
   chipTextActive: { color: '#FFF' },
   

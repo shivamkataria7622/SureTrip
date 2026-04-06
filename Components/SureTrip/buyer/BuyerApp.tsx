@@ -61,7 +61,14 @@ export default function BuyerApp() {
       {tabs.map(tab => {
         const isActive = activeTab === tab.id;
         return (
-          <TouchableOpacity key={tab.id} style={styles.tabItem} onPress={() => setActiveTab(tab.id)}>
+          <TouchableOpacity 
+            key={tab.id} 
+            style={styles.tabItem} 
+            onPress={() => {
+              setActiveTab(tab.id);
+              if (searchOpen) closeSearch();
+            }}
+          >
             <Feather name={tab.icon as any} size={22} color={isActive ? '#11706b' : '#AAA'} />
             <Text style={[styles.tabLabel, { color: isActive ? '#11706b' : '#AAA', fontWeight: isActive ? '700' : '500' }]}>
               {tab.label}
@@ -115,6 +122,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.08, shadowRadius: 12,
     borderTopWidth: 1, borderColor: 'rgba(0,0,0,0.06)',
+    zIndex: 200,
   },
   tabBarInner: {
     flexDirection: 'row', height: 80, paddingBottom: 10,
