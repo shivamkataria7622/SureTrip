@@ -3,15 +3,19 @@ const { db, messaging } = require('../config/firebase');
 // Save or updating the FCM device token for a user
 const saveFcmToken = async (req, res) => {
     try {
-        const { uid } = req.user;
+        const uid = req.user ? req.user.uid : req.body.userId;
         const { fcmToken } = req.body;
+
+        if (!uid) {
+            return res.status(400).json({ message: 'User ID (uid/userId) is required' });
+        }
 
         if (!fcmToken) {
             return res.status(400).json({ message: 'FCM token is required' });
         }
 
         const userRef = db.collection('users').doc(uid);
-        await userRef.update({ fcmToken });
+        await userRef.set({ fcmToken }, { merge: true });
 
         return res.status(200).json({ message: 'FCM token saved successfully' });
     } catch (error) {

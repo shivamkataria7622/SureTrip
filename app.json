@@ -4,21 +4,27 @@
     "slug": "SureTrip",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon9.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon9.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "notification": {
+      "icon": "./assets/notiicon.png",
+      "color": "#11706b"
+    },
     "ios": {
+      "bundleIdentifier": "com.suretrip.app",
       "supportsTablet": true,
       "config": {
         "googleMapsApiKey": "YOUR_GOOGLE_MAPS_IOS_KEY"
       }
     },
     "android": {
-       "package": "com.suretrip.app",
+      "package": "com.suretrip.app",
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_ANDROID_KEY"
@@ -34,6 +40,20 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": []
+    "plugins": [
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5fd3b509-d44a-467a-9897-8affe6fa8f6f"
+      }
+    },
+    "owner": "spectra007",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5fd3b509-d44a-467a-9897-8affe6fa8f6f"
+    }
   }
 }

@@ -20,7 +20,8 @@ const signup = async (req, res) => {
             // New user, create the profile
             await userRef.set({
                  // Use email as UID or keep it for compatibility
-                uid: db.collection('users').doc().id, // NATIVE FIREBASE ID GENERATOR (Bug fixed!)
+                uid: email,
+
                 email,
                 name: name || '',
                 createdAt: new Date().toISOString(),

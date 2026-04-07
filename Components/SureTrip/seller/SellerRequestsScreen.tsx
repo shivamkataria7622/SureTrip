@@ -57,6 +57,23 @@ export default function SellerRequestsScreen() {
     }
   };
 
+  const deleteOrder = async (id: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/orders/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchOrders(); // Refresh the list to remove the deleted item
+      } else {
+        const err = await response.json();
+        Alert.alert('Error', err.error || 'Failed to delete order');
+      }
+    } catch (error) {
+      console.error('Delete Error:', error);
+      Alert.alert('Network Error', 'Failed to reach the server.');
+    }
+  };
+
   const openYesModal = (id: string, defPrice?: string) => {
     setSelectedId(id);
     setQuantity('1'); // Default quick value
@@ -144,11 +161,17 @@ export default function SellerRequestsScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[styles.responseTag, item.status === 'accepted' ? styles.responseYes : styles.responseNo]}>
-                  <Feather name={item.status === 'accepted' ? 'check-circle' : 'x-circle'} size={15} color={item.status === 'accepted' ? '#059669' : '#DC2626'} />
-                  <Text style={[styles.responseText, { color: item.status === 'accepted' ? '#059669' : '#DC2626' }]}>
-                    {item.status === 'accepted' ? `You replied YES • ₹${item.price} • ${item.quantity} units` : 'You replied Sold Out'}
-                  </Text>
+                <View style={{ gap: 10 }}>
+                  <View style={[styles.responseTag, item.status === 'accepted' ? styles.responseYes : styles.responseNo]}>
+                    <Feather name={item.status === 'accepted' ? 'check-circle' : 'x-circle'} size={15} color={item.status === 'accepted' ? '#059669' : '#DC2626'} />
+                    <Text style={[styles.responseText, { color: item.status === 'accepted' ? '#059669' : '#DC2626' }]}>
+                      {item.status === 'accepted' ? `You replied YES • ₹${item.price} • ${item.quantity} units` : 'You replied Sold Out'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => deleteOrder(item.id)} activeOpacity={0.8}>
+                    <Feather name="trash-2" size={15} color="#DC2626" />
+                    <Text style={styles.deleteText}>Delete Request</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -243,6 +266,9 @@ const styles = StyleSheet.create({
   responseYes: { backgroundColor: '#EDFBF4' },
   responseNo: { backgroundColor: '#FEF2F2' },
   responseText: { fontSize: 14, fontWeight: '600' },
+  
+  deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#FEF2F2', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#FEE2E2' },
+  deleteText: { color: '#DC2626', fontSize: 14, fontWeight: '600' },
   
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modal: { backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },

@@ -1,5 +1,5 @@
 // Backend/controllers/orderController.js
-const { db } = require('../config/firebase'); // Use the shared db instance (already initialized with credentials)
+const { db, messaging } = require('../config/firebase'); // Use the shared db and messaging instance
 const Order = require('../models/Order');
 
 // POST /api/orders
@@ -8,6 +8,33 @@ exports.createOrder = async (req, res) => {
     const newOrder = new Order(req.body);
     const docRef = await db.collection('orders').add(newOrder.toFirestore());
     
+    // Send Notification to Seller
+    if (newOrder.sellerId && messaging) {
+      try {
+        const sellerDoc = await db.collection('users').doc(newOrder.sellerId).get();
+        if (sellerDoc.exists) {
+          const fcmToken = sellerDoc.data().fcmToken;
+          if (fcmToken) {
+            const message = {
+              notification: {
+                title: 'New Product Request',
+                body: `A buyer has requested ${newOrder.productName || 'a product'} from you.`
+              },
+              data: {
+                orderId: docRef.id,
+                type: 'NEW_ORDER_REQUEST'
+              },
+              token: fcmToken
+            };
+            await messaging.send(message);
+            console.log(`Notification sent to seller ${newOrder.sellerId} for order ${docRef.id}`);
+          }
+        }
+      } catch (notifErr) {
+        console.error('Error sending order request notification to seller:', notifErr);
+      }
+    }
+
     res.status(201).json({ 
       message: 'Order created successfully', 
       orderId: docRef.id 
@@ -29,7 +56,7 @@ exports.getSellerOrders = async (req, res) => {
 
     const ordersSnapshot = await db.collection('orders')
       .where('sellerId', '==', sellerId)
-      .where('status', 'in', ['pending', 'accepted'])
+      .where('status', 'in', ['pending', 'accepted', 'rejected'])
       .get();
 
     const orders = [];
@@ -54,6 +81,14 @@ exports.respondToOrder = async (req, res) => {
       return res.status(400).json({ error: "Response must be 'yes' or 'no'" });
     }
 
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+
+    if (!orderDoc.exists) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const orderData = orderDoc.data();
     const newStatus = response === 'yes' ? 'accepted' : 'rejected';
 
     const updateData = { status: newStatus, respondedAt: new Date().toISOString() };
@@ -63,7 +98,48 @@ exports.respondToOrder = async (req, res) => {
       if (price) updateData.price = price;
     }
 
-    await db.collection('orders').doc(orderId).update(updateData);
+    await orderRef.update(updateData);
+
+    // Send Notification to Buyer
+    if (messaging) {
+      try {
+        const buyerId = orderData.buyerId;
+        const productName = orderData.productName || 'a product';
+        const finalPrice = price || orderData.price;
+        
+        const buyerDoc = await db.collection('users').doc(buyerId).get();
+        if (buyerDoc.exists) {
+          const fcmToken = buyerDoc.data().fcmToken;
+          if (fcmToken) {
+            let notificationPayload = {};
+            if (response === 'yes') {
+              notificationPayload = {
+                title: 'Request Accepted!',
+                body: `A seller has accepted your request for ${productName}${finalPrice ? ' at ₹' + finalPrice : ''}.`
+              };
+            } else {
+              notificationPayload = {
+                title: 'Sold Out',
+                body: `Sorry, the seller just marked ${productName} as currently unavailable.`
+              };
+            }
+
+            const message = {
+              notification: notificationPayload,
+              data: {
+                orderId: orderId,
+                type: response === 'yes' ? 'ORDER_ACCEPTED' : 'ORDER_REJECTED'
+              },
+              token: fcmToken
+            };
+            await messaging.send(message);
+            console.log(`Notification sent to buyer ${buyerId} for order ${orderId} (${response})`);
+          }
+        }
+      } catch (notifErr) {
+        console.error('Error sending order response notification:', notifErr);
+      }
+    }
 
     res.status(200).json({ 
       message: `Order status updated to ${newStatus}`,
@@ -107,5 +183,16 @@ exports.getBuyerOrders = async (req, res) => {
   } catch (error) {
     console.error('Error fetching buyer orders:', error);
     res.status(500).json({ error: 'Failed to fetch buyer orders' });
+  }
+};
+// DELETE /api/orders/:id
+exports.deleteOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    await db.collection('orders').doc(orderId).delete();
+    res.status(200).json({ message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 };

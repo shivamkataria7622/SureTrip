@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "686019150394",
+    "project_id": "suretrip-007",
+    "storage_bucket": "suretrip-007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686019150394:android:5e4cd52f11cad412fbeb03",
+        "android_client_info": {
+          "package_name": "com.suretrip.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1N6PkqyxwjOXgVT-eDL5UyE77f8Udims"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

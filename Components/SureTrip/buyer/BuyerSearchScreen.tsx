@@ -43,7 +43,7 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
   const [filterVisible, setFilterVisible] = useState(false);
   const [cartItem, setCartItem] = useState<any>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'|'accepted'|'confirmed'>('cart');
+  const [checkoutStep, setCheckoutStep] = useState<'cart'|'processing'|'success'|'accepted'|'confirmed'|'rejected'>('cart');
   const [orderId, setOrderId] = useState<string | null>(null);
   const [acceptedOrder, setAcceptedOrder] = useState<any>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -200,6 +200,10 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
             setAcceptedOrder(data);
             setCheckoutStep('accepted');
             setIsCheckoutOpen(true); // Re-open modal so buyer sees the confirmation!
+            clearInterval(interval);
+          } else if (data.status === 'rejected') {
+            setCheckoutStep('rejected');
+            setIsCheckoutOpen(true);
             clearInterval(interval);
           }
         }
@@ -544,6 +548,20 @@ export default function BuyerSearchScreen({ onClose }: { onClose?: () => void })
 
                 <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#111', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
                   <Text style={styles.payBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {checkoutStep === 'rejected' && (
+              <View style={styles.successContainer}>
+                <View style={[styles.successIconBox, { backgroundColor: '#DC2626' }]}>
+                  <Feather name="x" size={40} color="#FFF" />
+                </View>
+                <Text style={styles.successTitle}>Sold Out</Text>
+                <Text style={styles.successSub}>Sorry, {cartItem?.shopName} just marked this item as sold out or currently unavailable.</Text>
+                
+                <TouchableOpacity onPress={closeCheckout} style={{ width: '100%', backgroundColor: '#111', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 10 }}>
+                  <Text style={styles.payBtnText}>Find Another Shop</Text>
                 </TouchableOpacity>
               </View>
             )}
